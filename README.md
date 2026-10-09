@@ -30,4 +30,4 @@
 
 `python3 build.py` 生成完整版 `site/`；`python3 build.py --public` 生成公开版 `site-public/`。构建只用 Python 3 标准库，页面无 CDN、外部字体或运行时网络依赖，直接打开 `index.html` 即可离线阅读。
 
-唯一可发布目录为 `site-public/`。它只包含阅读 HTML、本地 CSS、本 README 和 `.nojekyll`；不包含取证库、源码备份、完整版书稿或构建工具。本地研究仓库不能整体公开。当前任务不创建公开仓库、不推送、不启用 Pages。
+唯一可发布目录为 `site-public/`。它只包含阅读 HTML、本地 CSS、本 README 和 `.nojekyll`；不包含取证库、源码备份、完整版书稿或构建工具。本地研究仓库不能整体公开。公开版可单独提交并推送；仓库转公开与启用 Pages 另行决定。
