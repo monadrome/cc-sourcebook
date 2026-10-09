@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 12 章 · hooks、确认与拒绝后的继续 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html" aria-current="page"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+<ol class="section-list">
+<li><a href="#section-1">工具执行前先接收 hook 结果</a></li>
+<li><a href="#section-2">hook allow 仍要过规则</a></li>
+<li><a href="#section-3">PermissionRequest 是询问阶段的事件</a></li>
+<li><a href="#section-4">确认队列与异步检查竞速</a></li>
+<li><a href="#section-5">取消与拒绝还要告诉模型</a></li>
+<li><a href="#section-6">提问工具不是任意批准的通道</a></li>
+</ol>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html" aria-current="page"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+<ol class="section-list">
+<li><a href="#section-1">工具执行前先接收 hook 结果</a></li>
+<li><a href="#section-2">hook allow 仍要过规则</a></li>
+<li><a href="#section-3">PermissionRequest 是询问阶段的事件</a></li>
+<li><a href="#section-4">确认队列与异步检查竞速</a></li>
+<li><a href="#section-5">取消与拒绝还要告诉模型</a></li>
+<li><a href="#section-6">提问工具不是任意批准的通道</a></li>
+</ol>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">D · 权限与安全边界<span>第 12 章</span></p>
+    <h1>hooks、确认与拒绝后的继续</h1>
+  </header>
+  <div class="chapter-body"><p>规则和模式给出了判定，工具调用还要完成一次授权交互。本章主要读 <code>services/tools/toolExecution.ts:798-841</code>、<code>services/tools/toolHooks.ts:321-393</code>、<code>utils/permissions/permissions.ts:393-446</code> 与 <code>hooks/toolPermission/handlers/interactiveHandler.ts:83-101</code>、<code>hooks/toolPermission/handlers/interactiveHandler.ts:410-458</code>。PreToolUse、PermissionRequest 和用户确认都可能改变结果，但它们发生在不同位置；理解顺序和单次结算，比把它们统称为“外部审批”更能解释实际执行。</p>
+<h2 id="section-1">工具执行前先接收 hook 结果</h2>
+<p>toolExecution 迭代 runPreToolUseHooks，接收进度消息、权限结果、updatedInput、阻止继续和停止原因。hook 只改输入而没给权限决定时，也会替换 processedInput 供普通权限流程使用。工具名不变，参数已经可能不同；后续匹配应针对更新后的对象（D-39）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/tools/toolExecution.ts:798-841</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/tools/toolExecution.ts#L798-L841">核对原文</a></summary><pre><code class="language-ts" data-block-id="12-hooks-and-confirmation.md#001" data-quote-type="C" data-source-range="services/tools/toolExecution.ts:798-841">// … 省略 33 行（services/tools/toolExecution.ts:L798-L830）
+      case &#x27;hookPermissionResult&#x27;:
+        hookPermissionResult = result.hookPermissionResult
+        break
+      case &#x27;hookUpdatedInput&#x27;:
+        // Hook provided updatedInput without making a permission decision (passthrough)
+        // Update processedInput so it&#x27;s used in the normal permission flow
+        processedInput = result.updatedInput
+        break
+      case &#x27;preventContinuation&#x27;:
+        shouldPreventContinuation = result.shouldPreventContinuation
+        break
+</code></pre></details></figure>
+<p>原文依据：<code>services/tools/toolExecution.ts:798-841</code>。</p>
+<p>把输入修改和授权分开，是这段 switch 的实际结构。一个 hook 修正路径不等于批准新路径，提供上下文也不等于拒绝执行；结果类型决定下个动作。工具执行层随后调用 resolveHookPermissionDecision 接成最终决定。排查“用户看到的命令与执行命令不同”时，先查这一更新链，比仅搜对话中原始 input 更直接。</p>
+<h2 id="section-2">hook allow 仍要过规则</h2>
+<p>resolveHookPermissionDecision 取 hook 更新输入，检查 requiresUserInteraction 与 requireCanUseTool。交互工具如果 hook 提供了更新输入，可以把它视作已满足交互；否则仍进 canUseTool。普通 hook allow 调用规则子管线，deny 可以覆盖 allow，ask 仍需走询问。原文注释明确声明 hook allow 不绕过 settings deny/ask（D-39）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/tools/toolHooks.ts:321-393</code><span>摘录 20 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/tools/toolHooks.ts#L321-L393">核对原文</a></summary><pre><code class="language-ts" data-block-id="12-hooks-and-confirmation.md#002" data-quote-type="C" data-source-range="services/tools/toolHooks.ts:321-393">// … 省略 26 行（services/tools/toolHooks.ts:L321-L346）
+  if (hookPermissionResult?.behavior === &#x27;allow&#x27;) {
+    const hookInput = hookPermissionResult.updatedInput ?? input
+
+    // Hook provided updatedInput for an interactive tool — the hook IS the
+    // user interaction (e.g. headless wrapper that collected AskUserQuestion
+    // answers). Treat as non-interactive for the rule-check path.
+    const interactionSatisfied =
+      requiresInteraction &amp;&amp; hookPermissionResult.updatedInput !== undefined
+
+    if ((requiresInteraction &amp;&amp; !interactionSatisfied) || requireCanUseTool) {
+// … 省略 27 行（services/tools/toolHooks.ts:L357-L383）
+      return { decision: hookPermissionResult, input: hookInput }
+    }
+    if (ruleCheck.behavior === &#x27;deny&#x27;) {
+      logForDebugging(
+        `Hook approved tool use for ${tool.name}, but deny rule overrides: ${ruleCheck.message}`,
+      )
+      return { decision: ruleCheck, input: hookInput }
+    }
+    // ask rule — dialog required despite hook approval
+    logForDebugging(
+</code></pre></details></figure>
+<p>原文依据：<code>services/tools/toolHooks.ts:321-393</code>。</p>
+<p>这个复查函数与完整权限函数不一样：规则子管线不跑 auto 分类器、模式变换或 PermissionRequest hooks，用户交互要求由调用者预查（<code>utils/permissions/permissions.ts:1060-1070</code>）。前面在第 10 章读到的分层，在这里给出具体复用者。若把 hook 批准当任意模式的最终通行证，就会遗漏这次复查和交互守卫。</p>
+<p>工具执行状态也要以更新后的 input 为准。hook 已变更对象，复查却若拿旧对象就解释错授权目标；当前代码返回 decision 与 input 两部分，说明判定结果和最终参数在这一接口中并行传递。它并没有让 message 文本替代参数验证，文件工具还有第 8 章的先读检查。</p>
+<h2 id="section-3">PermissionRequest 是询问阶段的事件</h2>
+<p>无头路径运行 executePermissionRequestHooks，让 hook 在自动拒绝前给决定。allow 可以提供 updatedInput；updatedPermissions 会持久化并应用到当前 AppState，然后返回带 hook 原因的 allow。一次调用批准与权限规则更新是两个字段，可以一起出现，也可以只批准当前输入（D-40）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:393-446</code><span>摘录 20 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L393-L446">核对原文</a></summary><pre><code class="language-ts" data-block-id="12-hooks-and-confirmation.md#003" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:393-446">// … 省略 28 行（utils/permissions/permissions.ts:L393-L420）
+      const decision = hookResult.permissionRequestResult
+      if (decision.behavior === &#x27;allow&#x27;) {
+        const finalInput = decision.updatedInput ?? input
+        // Persist permission updates if provided
+        if (decision.updatedPermissions?.length) {
+          persistPermissionUpdates(decision.updatedPermissions)
+          context.setAppState(prev =&gt; ({
+            ...prev,
+            toolPermissionContext: applyPermissionUpdates(
+              prev.toolPermissionContext,
+              decision.updatedPermissions!,
+            ),
+          }))
+        }
+        return {
+          behavior: &#x27;allow&#x27;,
+          updatedInput: finalInput,
+          decisionReason: {
+            type: &#x27;hook&#x27;,
+            hookName: &#x27;PermissionRequest&#x27;,
+// … 省略 6 行（utils/permissions/permissions.ts:L441-L446）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissions.ts:393-446</code>。</p>
+<p>shouldAvoidPermissionPrompts 为真且没有 hook 决定，回退 deny，原因是当前环境没有提示能力。它不会因无人显示对话框就自动放行。auto 分类器检查又在此前，使它可在无头环境工作；不可分类器批准的安全检查另按第 11 章返回或拒绝（D-18、D-38）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:929-952</code><span>摘录 16 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L929-L952">核对原文</a></summary><pre><code class="language-ts" data-block-id="12-hooks-and-confirmation.md#004" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:929-952">    // When permission prompts should be avoided (e.g., background/headless agents),
+    // run PermissionRequest hooks first to give them a chance to allow/deny.
+    // Only auto-deny if no hook provides a decision.
+    if (appState.toolPermissionContext.shouldAvoidPermissionPrompts) {
+// … 省略 8 行（utils/permissions/permissions.ts:L933-L940）
+      if (hookDecision) {
+        return hookDecision
+      }
+      return {
+        behavior: &#x27;deny&#x27;,
+        decisionReason: {
+          type: &#x27;asyncAgent&#x27;,
+          reason: &#x27;Permission prompts are not available in this context&#x27;,
+        },
+        message: AUTO_REJECT_MESSAGE(tool.name),
+      }
+    }
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissions.ts:929-952</code>。</p>
+<p>这条顺序解释了“无头”不是一项权限模式。它是交互能力约束，仍能运行 hook 或分类器，能否执行取决于先前判定。把无头直接等同 bypass 或 dontAsk，会把不同字段的行为混在一起：dontAsk 主动把 ask 转 deny，无头路径则先给请求 hook 处理机会。</p>
+<h2 id="section-4">确认队列与异步检查竞速</h2>
+<p>交互 handler 用 result.updatedInput 或原 input 显示请求，并先入确认队列。PermissionRequest hooks 异步执行，返回后必须 claim 成功才结算；随后取消 bridge 请求、退订 channel、移除队列项并 resolveOnce。Bash 分类器的继续条件同样看是否已结算和用户是否交互（D-41）。</p>
+<figure class="source-quote"><details class="source"><summary><code>hooks/toolPermission/handlers/interactiveHandler.ts:83-101</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/hooks/toolPermission/handlers/interactiveHandler.ts#L83-L101">核对原文</a></summary><pre><code class="language-ts" data-block-id="12-hooks-and-confirmation.md#005" data-quote-type="C" data-source-range="hooks/toolPermission/handlers/interactiveHandler.ts:83-101">  const permissionPromptStartTimeMs = Date.now()
+  const displayInput = result.updatedInput ?? ctx.input
+// … 省略 7 行（hooks/toolPermission/handlers/interactiveHandler.ts:L85-L91）
+  ctx.pushToQueue({
+    assistantMessage: ctx.assistantMessage,
+    tool: ctx.tool,
+    description,
+    input: displayInput,
+    toolUseContext: ctx.toolUseContext,
+    toolUseID: ctx.toolUseID,
+    permissionResult: result,
+    permissionPromptStartTimeMs,
+    ...(feature(&#x27;BASH_CLASSIFIER&#x27;)
+</code></pre></details></figure>
+<p>原文依据：<code>hooks/toolPermission/handlers/interactiveHandler.ts:83-101</code>。</p>
+<figure class="source-quote"><details class="source"><summary><code>hooks/toolPermission/handlers/interactiveHandler.ts:410-458</code><span>摘录 20 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/hooks/toolPermission/handlers/interactiveHandler.ts#L410-L458">核对原文</a></summary><pre><code class="language-ts" data-block-id="12-hooks-and-confirmation.md#006" data-quote-type="C" data-source-range="hooks/toolPermission/handlers/interactiveHandler.ts:410-458">  // Skip hooks if they were already awaited in the coordinator branch above
+  if (!awaitAutomatedChecksBeforeDialog) {
+    // Execute PermissionRequest hooks asynchronously
+    // If hook returns a decision before user responds, apply it
+    void (async () =&gt; {
+      if (isResolved()) return
+      const currentAppState = ctx.toolUseContext.getAppState()
+      const hookDecision = await ctx.runHooks(
+        currentAppState.toolPermissionContext.mode,
+        result.suggestions,
+        result.updatedInput,
+        permissionPromptStartTimeMs,
+      )
+      if (!hookDecision || !claim()) return
+      if (bridgeCallbacks &amp;&amp; bridgeRequestId) {
+        bridgeCallbacks.cancelRequest(bridgeRequestId)
+      }
+      channelUnsubscribe?.()
+      ctx.removeFromQueue()
+      resolveOnce(hookDecision)
+// … 省略 29 行（hooks/toolPermission/handlers/interactiveHandler.ts:L430-L458）
+</code></pre></details></figure>
+<p>原文依据：<code>hooks/toolPermission/handlers/interactiveHandler.ts:410-458</code>。</p>
+<p>这里“谁先得到结果”与“谁还允许提交结果”分别由异步返回和 claim/状态条件控制。不能仅说分类器较快就必然压过用户反馈；shouldContinue 检查 userInteracted，hook 路径也要拿到结算资格。源码展示取消其他来源和移除队列的动作，避免同一次请求被不同批准重复交付。</p>
+<p>useCanUseTool 还有 coordinator、swarm worker 和 Bash 推测分类器路径，普通 ask 最后进入交互 handler；对应分支见 <code>hooks/useCanUseTool.tsx:96-170</code>。当前取证不复述渲染层，只追谁产生与消费权限结果。显示一个对话框是询问的载体，不能反过来证明其他路径不会返回结果。</p>
+<h2 id="section-5">取消与拒绝还要告诉模型</h2>
+<p>cancelAndAbort 选择普通或子 agent 的拒绝文本，可带用户反馈；显式 abort，或无反馈且无附加内容的非子 agent 取消，会中止回合。返回行为为 ask 并不意味着这里仍等待一个新批准，它是取消路径使用的判定结构。具体对象要按方法语义读（D-20）。</p>
+<figure class="source-quote"><details class="source"><summary><code>hooks/toolPermission/PermissionContext.ts:154-173</code><span>摘录 15 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/hooks/toolPermission/PermissionContext.ts#L154-L173">核对原文</a></summary><pre><code class="language-ts" data-block-id="12-hooks-and-confirmation.md#007" data-quote-type="C" data-source-range="hooks/toolPermission/PermissionContext.ts:154-173">// … 省略 5 行（hooks/toolPermission/PermissionContext.ts:L154-L158）
+      const sub = !!toolUseContext.agentId
+      const baseMessage = feedback
+        ? `${sub ? SUBAGENT_REJECT_MESSAGE_WITH_REASON_PREFIX : REJECT_MESSAGE_WITH_REASON_PREFIX}${feedback}`
+        : sub
+          ? SUBAGENT_REJECT_MESSAGE
+          : REJECT_MESSAGE
+      const message = sub ? baseMessage : withMemoryCorrectionHint(baseMessage)
+      if (isAbort || (!feedback &amp;&amp; !contentBlocks?.length &amp;&amp; !sub)) {
+        logForDebugging(
+          `Aborting: tool=${tool.name} isAbort=${isAbort} hasFeedback=${!!feedback} isSubagent=${sub}`,
+        )
+        toolUseContext.abortController.abort()
+      }
+      return { behavior: &#x27;ask&#x27;, message, contentBlocks }
+    },
+</code></pre></details></figure>
+<p>原文依据：<code>hooks/toolPermission/PermissionContext.ts:154-173</code>。</p>
+<p>拒绝怎样回到模型，已在<a href="04-prohibitions-and-authorization.html">第 4 章</a>连同公共指导完整引用（<code>services/tools/toolExecution.ts:1023-1038</code>、<code>utils/permissions/permissions.ts:857-868</code>）。从当前交互链继续查时，下一站就是那条回灌，而不是重新发起同一个确认队列项。各消息构造路径的范围限制也沿用该章说明。</p>
+<p>第 4 章的“别原样重试，先理解原因”因此有实际接收位置：模型下一步会读到工具结果里的错误说明（<code>constants/prompts.ts:186-197</code>）。它不是执行器自动替用户修正任务，而是把事实与拒绝理由留给后续推理；作者要求合理替代而非恶意绕过的文本也只能在对应构造路径里出现。</p>
+<h2 id="section-6">提问工具不是任意批准的通道</h2>
+<p>AskUserQuestion 澄清需求、ExitPlanMode 展示并审批计划的区别已在第 9 章展开（<code>tools/AskUserQuestionTool/prompt.ts:32-44</code>、<code>tools/ExitPlanModeTool/prompt.ts:6-29</code>）。这里保留它与 requiresUserInteraction 的关联：某工具需要真正的用户交互，不能因为模式通常自动许可就省略；hook 更新输入满足交互的特殊路径也有具体条件。用户回答的内容和持久规则修改不能凭空互相转换。</p>
+<p>登录后 bypass 的一次性检查标志会重置，远程跳过在启动 hook 的 effect 中；它不写在所有检查入口内部（<code>utils/permissions/bypassPermissionsKillswitch.ts:49-73</code>）。这也是交互外壳与判定函数要分层读取的例子：界面启动是否调用，和函数自身拿到上下文后如何处理，分别由不同代码说明。</p>
+<p>本章的终点是一次调用已经有结果，其他等待来源也被取消或保留。批准后的环境仍可能拒绝文件访问或网络连接；输入验证和执行隔离不会因对话结算而消失。下一章继续读路径保护与沙箱转换，说明权限 allow 之后还有哪些具体边界。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="11-permission-modes.html"><span class="page-direction">&larr; 上一章</span><span>第 11 章 · 权限模式与分类器的边界</span></a>
+<a href="13-paths-and-sandbox.html"><span class="page-direction">&rarr; 下一章</span><span>第 13 章 · 路径保护与沙箱执行</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

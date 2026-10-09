@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 7 章 · 工具接口、描述与发现协议 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html" aria-current="page"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+<ol class="section-list">
+<li><a href="#section-1">一次调用的说明不能代替模型协议</a></li>
+<li><a href="#section-2">注册、可见与许可逐层收窄</a></li>
+<li><a href="#section-3">名称发现解决不了参数未知</a></li>
+<li><a href="#section-4">空占位不表示外部工具没有协议</a></li>
+<li><a href="#section-5">资源发现保留服务器坐标</a></li>
+<li><a href="#section-6">动态目录与坐标也进入调用约定</a></li>
+</ol>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html" aria-current="page"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+<ol class="section-list">
+<li><a href="#section-1">一次调用的说明不能代替模型协议</a></li>
+<li><a href="#section-2">注册、可见与许可逐层收窄</a></li>
+<li><a href="#section-3">名称发现解决不了参数未知</a></li>
+<li><a href="#section-4">空占位不表示外部工具没有协议</a></li>
+<li><a href="#section-5">资源发现保留服务器坐标</a></li>
+<li><a href="#section-6">动态目录与坐标也进入调用约定</a></li>
+</ol>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">C · 工具提示词<span>第 07 章</span></p>
+    <h1>工具接口、描述与发现协议</h1>
+  </header>
+  <div class="chapter-body"><p>工具卷配对读模型描述与实际分支，方法边界见阅读说明。本章从 <code>Tool.ts:386-406</code>、<code>Tool.ts:518-524</code> 和 <code>utils/api.ts:136-178</code>、<code>utils/api.ts:208-230</code>、<code>tools/BashTool/BashTool.tsx:426-433</code> 追文本怎样进入API。两个description名字相同却有不同消费者，能力进入工具池、被模型发现、这次获准执行也分属不同阶段；这些区别比一份工具名清单更能解释调用行为。</p>
+<h2 id="section-1">一次调用的说明不能代替模型协议</h2>
+<p>Tool把具体input的说明、schema与执行性质放在同一个接口，但没有让说明文字自动实现只读、并发或破坏性判断。先读方法签名，才能知道哪个字段消费输入，哪个字段只陈述用途（C-01）。</p>
+<figure class="source-quote"><details class="source"><summary><code>Tool.ts:386-406</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/Tool.ts#L386-L406">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#001" data-quote-type="C" data-source-range="Tool.ts:386-406">// … 省略 14 行（Tool.ts:L386-L399）
+  outputSchema?: z.ZodType&lt;unknown&gt;
+  inputsEquivalent?(a: z.infer&lt;Input&gt;, b: z.infer&lt;Input&gt;): boolean
+  isConcurrencySafe(input: z.infer&lt;Input&gt;): boolean
+  isEnabled(): boolean
+  isReadOnly(input: z.infer&lt;Input&gt;): boolean
+  /** Defaults to false. Only set when the tool performs irreversible operations (delete, overwrite, send). */
+  isDestructive?(input: z.infer&lt;Input&gt;): boolean
+</code></pre></details></figure>
+<p>原文依据：<code>Tool.ts:386-406</code>。</p>
+<p>description拿到本次参数，而isReadOnly等方法另行返回性质；文本中写“只读”不能替这些方法生成返回值。破坏性注释还有默认与适用情境，读者不能只根据工具名字决定运行时属性。prompt则面向另一组上下文。</p>
+<figure class="source-quote"><details class="source"><summary><code>Tool.ts:518-524</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/Tool.ts#L518-L524">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#002" data-quote-type="C" data-source-range="Tool.ts:518-524">  prompt(options: {
+    getToolPermissionContext: () =&gt; Promise&lt;ToolPermissionContext&gt;
+    tools: Tools
+    agents: AgentDefinition[]
+    allowedAgentTypes?: string[]
+  }): Promise&lt;string&gt;
+  userFacingName(input: Partial&lt;z.infer&lt;Input&gt;&gt; | undefined): string
+</code></pre></details></figure>
+<p>prompt接工具和agent集合，不接本次input，说明它可以描述当前可用能力，而不是展示刚刚生成的命令。调用者允许哪些agent类型也能进入这份文字。接下来同名API字段的赋值，才将这两个方法真正区分开。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/api.ts:136-178</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/api.ts#L136-L178">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#003" data-quote-type="C" data-source-range="utils/api.ts:136-178">// … 省略 33 行（utils/api.ts:L136-L168）
+    base = {
+      name: tool.name,
+      description: await tool.prompt({
+        getToolPermissionContext: options.getToolPermissionContext,
+        tools: options.tools,
+        agents: options.agents,
+        allowedAgentTypes: options.allowedAgentTypes,
+      }),
+      input_schema,
+    }
+</code></pre></details></figure>
+<p>原文依据：<code>utils/api.ts:136-178</code>。</p>
+<p>API description来自prompt，缓存键却主要是工具名及可选JSON schema，不包含这次description闭包的一切状态。注释说基础schema要稳定，故不能因工具列表或gate变动就假定描述同步重算。改变输入schema内容与改变每请求延迟标记，又走不同处理。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/api.ts:208-230</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/api.ts#L208-L230">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#004" data-quote-type="C" data-source-range="utils/api.ts:208-230">// … 省略 3 行（utils/api.ts:L208-L210）
+  // Per-request overlay: defer_loading and cache_control vary by call
+  // (tool search defers different tools per turn; cache markers move).
+  // Explicit field copy avoids mutating the cached base and sidesteps
+  // BetaTool.cache_control&#x27;s `| null` clashing with our narrower type.
+  const schema: BetaToolWithExtras = {
+    name: base.name,
+    description: base.description,
+    input_schema: base.input_schema,
+// … 省略 12 行（utils/api.ts:L219-L230）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/api.ts:208-230</code>。</p>
+<p>defer_loading与cache_control叠在复制的基础对象上，不回写缓存。一个工具本轮被延迟，与它的长描述重新生成，是两件事。生命周期已在第2章详述；这里用Bash对拍文案实际从哪个方法来。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/BashTool.tsx:426-433</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/BashTool.tsx#L426-L433">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#005" data-quote-type="C" data-source-range="tools/BashTool/BashTool.tsx:426-433">  async description({
+    description
+  }) {
+    return description || &#x27;Run shell command&#x27;;
+  },
+  async prompt() {
+    return getSimplePrompt();
+  },
+</code></pre></details></figure>
+<p>Bash的description只是输入说明或Run shell command，prompt才返回包含操作规则的getSimplePrompt。停在前者会误以为工具只给一行能力介绍；停在API字段又不回溯赋值，则会把面向模型的协议错当成这次命令的摘要。</p>
+<p>这两个方法的差异还影响缓存审计：API缓存的是prompt生成的描述，工具执行却仍以具体input调用description。一个变更只改了调用摘要，未必会让模型看到的新规则更新；一个变更只改了prompt，也未必改变用户看到的单次命令说明。检查工具行为时，先标出文字的消费者，再看哪一个对象参与schema缓存。</p>
+<h2 id="section-2">注册、可见与许可逐层收窄</h2>
+<p>注册表能列出某个对象，不代表当前会话一定把它送给模型。构建和运行条件先影响基础候选，再由权限与可用性筛选决定实际视野（C-03）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools.ts:193-230</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools.ts#L193-L230">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#006" data-quote-type="C" data-source-range="tools.ts:193-230">// … 省略 5 行（tools.ts:L193-L197）
+    // Ant-native builds have bfs/ugrep embedded in the bun binary (same ARGV0
+    // trick as ripgrep). When available, find/grep in Claude&#x27;s shell are aliased
+    // to these fast tools, so the dedicated Glob/Grep tools are unnecessary.
+    ...(hasEmbeddedSearchTools() ? [] : [GlobTool, GrepTool]),
+// … 省略 29 行（tools.ts:L202-L230）
+</code></pre></details></figure>
+<p>原文依据：<code>tools.ts:193-230</code>。</p>
+<p>嵌入式搜索时不注册独立搜索工具，另有按用户与模式加入的对象。因此，模板里要求某工具之前，还得有对应工具集合；不能拿完整注册表当每次请求的实际能力。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>tools.ts:253-298</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools.ts#L253-L298">核对原文</a></div><pre><code class="language-ts" data-block-id="07-tool-contracts.md#007" data-quote-type="C" data-source-range="tools.ts:253-298">// … 省略 14 行（tools.ts:L253-L266）
+&gt;(tools: readonly T[], permissionContext: ToolPermissionContext): T[] {
+  return tools.filter(tool =&gt; !getDenyRuleForTool(permissionContext, tool))
+}
+// … 省略 29 行（tools.ts:L270-L298）
+</code></pre></div></figure>
+<p>原文依据：<code>tools.ts:253-298</code>。</p>
+<p>整工具deny会提前移除名称，简单模式还有独立的基础集合；这使“工具不存在”既可能是能力选择，也可能是禁用。内容级规则却不能在此完整判定，它还没有本次输入。检查一次调用是否允许，应继续走第10章的执行权限，而不凭当前工具可见作结论。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>tools.ts:300-326</code><span>摘录 2 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools.ts#L300-L326">核对原文</a></div><pre><code class="language-ts" data-block-id="07-tool-contracts.md#008" data-quote-type="C" data-source-range="tools.ts:300-326">// … 省略 25 行（tools.ts:L300-L324）
+  const isEnabled = allowedTools.map(_ =&gt; _.isEnabled())
+  return allowedTools.filter((_, i) =&gt; isEnabled[i])
+</code></pre></div></figure>
+<p>原文依据：<code>tools.ts:300-326</code>。</p>
+<p>普通路径再检查isEnabled并剔除特殊或REPL包装原语。前一块决定选哪组工具，这一块决定组内哪些能直接用；coordinator与普通会话不应共享一个无条件清单。MCP接入后还要解决同名候选。</p>
+<p>这三步的结果是“模型视野”，不是“权限结论”。工具可以因模式不适合而不出现，也可以出现后因为参数命中 deny 而被拒绝；反过来，一个出现在列表里的工具也可能只在当前特性开关打开时存在。把列表快照和调用判定放在同一张表里，会丢掉这些时间点差异。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools.ts:329-366</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools.ts#L329-L366">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#009" data-quote-type="M" data-source-range="tools.ts:329-366">// … 省略 26 行（tools.ts:L329-L354）
+  // contiguous prefix. The server&#x27;s claude_code_system_cache_policy places a
+  // global cache breakpoint after the last prefix-matched built-in tool; a flat
+  // sort would interleave MCP tools into built-ins and invalidate all downstream
+  // cache keys whenever an MCP tool sorts between existing built-ins. uniqBy
+  // preserves insertion order, so built-ins win on name conflict.
+  // Avoid Array.toSorted (Node 20+) — we support Node 18. builtInTools is
+  // readonly so copy-then-sort; allowedMcpTools is a fresh .filter() result.
+  const byName = (a: Tool, b: Tool) =&gt; a.name.localeCompare(b.name)
+  return uniqBy(
+    [...builtInTools].sort(byName).concat(allowedMcpTools.sort(byName)),
+    &#x27;name&#x27;,
+  )
+</code></pre></details></figure>
+<p>原文依据：<code>tools.ts:329-366</code>。</p>
+<p>内置与MCP各自排序、连接后去重，使当前函数中的内置候选占先；注释把分区稳定性关联缓存。这个结果只说明该组装入口的冲突处理，不证明SDK所有替代路径都相同。旧规则名归一也独立于工具池，展示名与权限名不能随意互换（<code>utils/permissions/permissionRuleParser.ts:21-33</code>）。</p>
+<h2 id="section-3">名称发现解决不了参数未知</h2>
+<p>ToolSearch用完整schema的获得状态定义可调用，而不是用“模型听过名字”定义能力。提示在两种公告位置之间选择，同时把准确名称查询与关键词匹配分开（C-18）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/ToolSearchTool/prompt.ts:27-51</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/ToolSearchTool/prompt.ts#L27-L51">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#010" data-quote-type="P" data-source-range="tools/ToolSearchTool/prompt.ts:27-51">// … 省略 17 行（tools/ToolSearchTool/prompt.ts:L27-L43）
+const PROMPT_TAIL = ` Until fetched, only the name is known — there is no parameter schema, so the tool cannot be invoked. This tool takes a query, matches it against the deferred tool list, and returns the matched tools&#x27; complete JSONSchema definitions inside a &lt;functions&gt; block. Once a tool&#x27;s schema appears in that result, it is callable exactly like any tool defined at the top of the prompt.
+
+Result format: each matched tool appears as one &lt;function&gt;{&quot;description&quot;: &quot;...&quot;, &quot;name&quot;: &quot;...&quot;, &quot;parameters&quot;: {...}}&lt;/function&gt; line inside the &lt;functions&gt; block — the same encoding as the tool list at the top of this prompt.
+
+Query forms:
+- &quot;select:Read,Edit,Grep&quot; — fetch these exact tools by name
+- &quot;notebook jupyter&quot; — keyword search, up to max_results best matches
+- &quot;+slack send&quot; — require &quot;slack&quot; in the name, rank by remaining terms`
+</code></pre></details></figure>
+<p>原文依据：<code>tools/ToolSearchTool/prompt.ts:27-51</code>。</p>
+<p>位置提示的gate必须与真正公告工具的机制对齐，注释特意说明同一个判断为何在此复制。否则文案会让模型去错误位置找名字。返回schema的编码又与顶层工具定义一致，承担从发现到调用的协议转换。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>tools/ToolSearchTool/prompt.ts:119-121</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/ToolSearchTool/prompt.ts#L119-L121">核对原文</a></div><pre><code class="language-ts" data-block-id="07-tool-contracts.md#011" data-quote-type="C" data-source-range="tools/ToolSearchTool/prompt.ts:119-121">export function getPrompt(): string {
+  return PROMPT_HEAD + getToolLocationHint() + PROMPT_TAIL
+}
+</code></pre></div></figure>
+<p>这份prompt由固定头尾与运行时位置提示拼成；不是每次把工具全集直接列入描述。判断它提供了什么，应区分指向清单的文字与清单本身。API是否实际延迟工具，还由下面的谓词与请求开关控制。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/ToolSearchTool/prompt.ts:53-117</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/ToolSearchTool/prompt.ts#L53-L117">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#012" data-quote-type="C" data-source-range="tools/ToolSearchTool/prompt.ts:53-117">// … 省略 12 行（tools/ToolSearchTool/prompt.ts:L53-L64）
+  if (tool.alwaysLoad === true) return false
+
+  // MCP tools are always deferred (workflow-specific)
+  if (tool.isMcp === true) return true
+
+  // Never defer ToolSearch itself — the model needs it to load everything else
+  if (tool.name === TOOL_SEARCH_TOOL_NAME) return false
+// … 省略 46 行（tools/ToolSearchTool/prompt.ts:L72-L117）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/ToolSearchTool/prompt.ts:53-117</code>。</p>
+<p>alwaysLoad先于isMcp，通信工具与Agent也有立即可见例外，所以注释里的“所有MCP延迟”须带前置豁免。searchHint还可存在于对象，但formatDeferredToolLine只给名字；注释记录其A/B无收益，不等于字段从系统中消失。保存、展示与试验结论分别有来源。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/api/claude.ts:1207-1209</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/api/claude.ts#L1207-L1209">核对原文</a></div><pre><code class="language-ts" data-block-id="07-tool-contracts.md#013" data-quote-type="C" data-source-range="services/api/claude.ts:1207-1209">  const useGlobalCacheFeature = shouldUseGlobalCacheScope()
+  const willDefer = (t: Tool) =&gt;
+    useToolSearch &amp;&amp; (deferredToolNames.has(t.name) || shouldDeferLspTool(t))
+</code></pre></div></figure>
+<p>isDeferredTool的判断不直接写API字段，willDefer还要useToolSearch为真。把内部“可以延迟”的性质翻成“本轮一定延迟”，就跳过了这个请求条件。下一块才消费结果构造schema。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/api/claude.ts:1231-1246</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/api/claude.ts#L1231-L1246">核对原文</a></div><pre><code class="language-ts" data-block-id="07-tool-contracts.md#014" data-quote-type="C" data-source-range="services/api/claude.ts:1231-1246">  // Build tool schemas, adding defer_loading for MCP tools when tool search is enabled
+  // Note: We pass the full `tools` list (not filteredTools) to toolToAPISchema so that
+  // ToolSearchTool&#x27;s prompt can list ALL available MCP tools. The filtering only affects
+  // which tools are actually sent to the API, not what the model sees in tool descriptions.
+// … 省略 12 行（services/api/claude.ts:L1235-L1246）
+</code></pre></div></figure>
+<p>原文依据：<code>services/api/claude.ts:1231-1246</code>。</p>
+<p>实际发送映射filteredTools，却给prompt传完整tools，注释说明描述可以知道比实际发送集合更多的工具。模型在文字中见到名字，不表示完整schema已在同次请求出现。这正解释了为何发现入口、能力描述和调用许可需要分开核对。</p>
+<p>这里有一个实际的先后关系：prompt可以告诉模型“有哪些东西能搜索”，API却只把当前筛选后的工具对象发送出去；ToolSearch返回schema后，模型才获得调用所需的参数形状。模型看到的候选、请求里已加载的对象和权限上下文里的工具集合因此可能处于三个阶段，不能用任一阶段替代另外两个。</p>
+<p>技能清单的字符预算见第14章（<code>tools/SkillTool/prompt.ts:20-50</code>、<code>tools/SkillTool/prompt.ts:68-171</code>）。它控制发现描述，不直接缩减Skill调用的正文，也不替ToolSearch决定哪些schema被加载；同叫“少放一点文字”，控制对象不同。</p>
+<h2 id="section-4">空占位不表示外部工具没有协议</h2>
+<p>MCP本地prompt为空，不能据此评价真实工具给模型什么指导。空字段只是共同对象的起点，客户端会以服务器描述覆盖（C-33）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>tools/MCPTool/prompt.ts:1-3</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/MCPTool/prompt.ts#L1-L3">核对原文</a></div><pre><code class="language-ts" data-block-id="07-tool-contracts.md#015" data-quote-type="C" data-source-range="tools/MCPTool/prompt.ts:1-3">// Actual prompt and description are overridden in mcpClient.ts
+export const PROMPT = &#x27;&#x27;
+export const DESCRIPTION = &#x27;&#x27;
+</code></pre></div></figure>
+<p>这三行指向的是加载流程，尚未展示真正文字和元数据来源。要解释运行时能力，必须跟到tools/list响应；只对这个空文件统计提示词长度，会把MCP整类工具误算为无描述。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/mcp/client.ts:1743-1813</code><span>摘录 14 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/mcp/client.ts#L1743-L1813">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#016" data-quote-type="C" data-source-range="services/mcp/client.ts:1743-1813">// … 省略 43 行（services/mcp/client.ts:L1743-L1785）
+            async description() {
+              return tool.description ?? &#x27;&#x27;
+            },
+            async prompt() {
+              const desc = tool.description ?? &#x27;&#x27;
+              return desc.length &gt; MAX_MCP_DESCRIPTION_LENGTH
+                ? desc.slice(0, MAX_MCP_DESCRIPTION_LENGTH) + &#x27;… [truncated]&#x27;
+                : desc
+            },
+            isConcurrencySafe() {
+              return tool.annotations?.readOnlyHint ?? false
+            },
+            isReadOnly() {
+              return tool.annotations?.readOnlyHint ?? false
+// … 省略 14 行（services/mcp/client.ts:L1800-L1813）
+</code></pre></details></figure>
+<p>原文依据：<code>services/mcp/client.ts:1743-1813</code>。</p>
+<p>同一外来description供调用说明使用，模型prompt却可能裁切；两者不必逐字等长。annotations又被客户端方法采用，性质来自服务端元数据，而不是模型读完描述推断。skip-prefix还会改变调用名，权限检查用mcpInfo保来源；不能用一个短名字串判断内置与外来对象等价。</p>
+<p>这也解释了为什么本地MCPTool的空文件不是“工具没有提示词”的证据：真正的文字和schema在客户端把外部响应投影成Tool对象时才出现。外部description可以被截断，外部schema却直接进入inputJSONSchema；模型可读的说明与宿主可解析的参数甚至不共享同一截断策略。</p>
+<p>净化Unicode与折叠searchHint换行解决表示问题，不能解释成已经验证描述可信。这里展示的是客户端怎样接纳和呈现外来字段，内容授权仍需沿权限链查。元数据可用于调度，未因此变成独立核验过的只读或安全证明。</p>
+<h2 id="section-5">资源发现保留服务器坐标</h2>
+<p>资源协议比工具搜索短，却同样防止把发现结果当成无来源的URI。列表附server字段，为后续读取提供必要坐标（C-32）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/ListMcpResourcesTool/prompt.ts:1-20</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/ListMcpResourcesTool/prompt.ts#L1-L20">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#017" data-quote-type="P" data-source-range="tools/ListMcpResourcesTool/prompt.ts:1-20">// … 省略 12 行（tools/ListMcpResourcesTool/prompt.ts:L1-L12）
+List available resources from configured MCP servers.
+Each returned resource will include all standard MCP resource fields plus a &#x27;server&#x27; field 
+indicating which server the resource belongs to.
+
+Parameters:
+- server (optional): The name of a specific MCP server to get resources from. If not provided,
+  resources from all servers will be returned.
+`
+</code></pre></details></figure>
+<p>原文依据：<code>tools/ListMcpResourcesTool/prompt.ts:1-20</code>。</p>
+<p>省略server表示跨服务器枚举，不表示读任意资源时也能省来源。列表的输出补充与下一工具的必填参数形成一条传递关系；短描述的价值正在这个接口上。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/ReadMcpResourceTool/prompt.ts:1-16</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/ReadMcpResourceTool/prompt.ts#L1-L16">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#018" data-quote-type="P" data-source-range="tools/ReadMcpResourceTool/prompt.ts:1-16">// … 省略 10 行（tools/ReadMcpResourceTool/prompt.ts:L1-L10）
+Reads a specific resource from an MCP server, identified by server name and resource URI.
+
+Parameters:
+- server (required): The name of the MCP server from which to read the resource
+- uri (required): The URI of the resource to read
+`
+</code></pre></details></figure>
+<p>原文依据：<code>tools/ReadMcpResourceTool/prompt.ts:1-16</code>。</p>
+<p>读取要求server与uri，选定对象仍回到具体服务端。工具的流程复杂度可以不同：这里主要固定对象身份，Bash另安排操作步骤。不能因为文字短，就称它没有控制调用方式。</p>
+<h2 id="section-6">动态目录与坐标也进入调用约定</h2>
+<p>Config从设置注册表生成文案，让可选值和说明同源；但一个选项注册了，仍可在运行时被隐藏。模型目录不是静态枚举的原样复制（C-36）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/ConfigTool/prompt.ts:9-93</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/ConfigTool/prompt.ts#L9-L93">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#019" data-quote-type="C" data-source-range="tools/ConfigTool/prompt.ts:9-93">// … 省略 9 行（tools/ConfigTool/prompt.ts:L9-L17）
+  for (const [key, config] of Object.entries(SUPPORTED_SETTINGS)) {
+    // Skip model - it gets its own section with dynamic options
+    if (key === &#x27;model&#x27;) continue
+    // Voice settings are registered at build-time but gated by GrowthBook
+    // at runtime. Hide from model prompt when the kill-switch is on.
+    if (
+      feature(&#x27;VOICE_MODE&#x27;) &amp;&amp;
+      key === &#x27;voiceEnabled&#x27; &amp;&amp;
+      !isVoiceGrowthBookEnabled()
+    )
+      continue
+// … 省略 65 行（tools/ConfigTool/prompt.ts:L29-L93）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/ConfigTool/prompt.ts:9-93</code>。</p>
+<p>voice项受kill-switch隐藏，model独立生成且可回退；实际写入规则不因这些文案存在而被自动实现。Get/Set又按value是否传入区分，取值真假不是选择操作的同义条件。RemoteTrigger的认证隔离理由同样归属为描述宣称，未展开的执行代码不能由文案补证（<code>tools/RemoteTriggerTool/prompt.ts:1-15</code>）。</p>
+<p>Config的例子说明“动态描述”有两个方向：选项清单随着运行时状态变化，调用形状又由是否存在value决定。若只保存一次生成后的全文，模型可能看到过期选项；若只看schema，又看不到某项为什么可用。这里的微型harness同时承担发现当前选项和提示读写动作，执行器仍要检查真正的设置更新路径。</p>
+<p>NotebookEdit的对象单位是cell，LSP则以文件位置识别目标。这两个短提示给出不同坐标原点，跨工具复制数字会改变所指对象（C-40）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>tools/NotebookEditTool/prompt.ts:1-3</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/NotebookEditTool/prompt.ts#L1-L3">核对原文</a></div><pre><code class="language-ts" data-block-id="07-tool-contracts.md#020" data-quote-type="P" data-source-range="tools/NotebookEditTool/prompt.ts:1-3">export const DESCRIPTION =
+  &#x27;Replace the contents of a specific cell in a Jupyter notebook.&#x27;
+export const PROMPT = `Completely replaces the contents of a specific cell in a Jupyter notebook (.ipynb file) with new source. Jupyter notebooks are interactive documents that combine code, text, and visualizations, commonly used for data analysis and scientific computing. The notebook_path parameter must be an absolute path, not a relative path. The cell_number is 0-indexed. Use edit_mode=insert to add a new cell at the index specified by cell_number. Use edit_mode=delete to delete the cell at the index specified by cell_number.`
+</code></pre></div></figure>
+<p>cell_number从零开始，insert/delete又改变单元格操作含义；它不是普通行号。下一份描述虽然也用位置参数，却不能继承这个起点。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/LSPTool/prompt.ts:1-21</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/LSPTool/prompt.ts#L1-L21">核对原文</a></summary><pre><code class="language-ts" data-block-id="07-tool-contracts.md#021" data-quote-type="P" data-source-range="tools/LSPTool/prompt.ts:1-21">// … 省略 15 行（tools/LSPTool/prompt.ts:L1-L15）
+All operations require:
+- filePath: The file to operate on
+- line: The line number (1-based, as shown in editors)
+- character: The character offset (1-based, as shown in editors)
+
+Note: LSP servers must be configured for the file type. If no server is available, an error will be returned.`
+</code></pre></details></figure>
+<p>原文依据：<code>tools/LSPTool/prompt.ts:1-21</code>。</p>
+<p>LSP行与字符偏移从一开始，查询还需有服务端；相同数字不一定指同一文本位置。接口、发现、元数据和坐标到此各有落点。下一章继续检验操作前置条件，看“先读再写”的文案与输入验证在哪些分支相合、在哪些分支有例外。</p>
+<p>从这里回看工具契约，参数单位是最小但最关键的边界。它不需要长篇流程就能改变一次调用的对象：cell_number从零开始，LSP位置从一开始，MCP资源还需server坐标。工具描述的价值不在于把所有规则写长，而在于把模型下一次输入必须带的坐标、名称和阶段说准确。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="06-output-and-subtasks.html"><span class="page-direction">&larr; 上一章</span><span>第 6 章 · 给用户看的文字与子任务专用提示</span></a>
+<a href="08-file-shell.html"><span class="page-direction">&rarr; 下一章</span><span>第 8 章 · 文件与 shell 工具怎样约束调用</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

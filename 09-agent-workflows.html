@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 9 章 · 委派、计划与任务协作的调用流程 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html" aria-current="page"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+<ol class="section-list">
+<li><a href="#section-1">可用 agent 类型先被筛选</a></li>
+<li><a href="#section-2">fork 的交接与上下文不同</a></li>
+<li><a href="#section-3">技能调用要么已加载，要么先加载</a></li>
+<li><a href="#section-4">计划工具对歧义的门槛不同</a></li>
+<li><a href="#section-5">共享任务表保存依赖与所有者</a></li>
+<li><a href="#section-6">消息与状态不能互相替代</a></li>
+<li><a href="#section-7">长驻流程还要约束等待与投递</a></li>
+</ol>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html" aria-current="page"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+<ol class="section-list">
+<li><a href="#section-1">可用 agent 类型先被筛选</a></li>
+<li><a href="#section-2">fork 的交接与上下文不同</a></li>
+<li><a href="#section-3">技能调用要么已加载，要么先加载</a></li>
+<li><a href="#section-4">计划工具对歧义的门槛不同</a></li>
+<li><a href="#section-5">共享任务表保存依赖与所有者</a></li>
+<li><a href="#section-6">消息与状态不能互相替代</a></li>
+<li><a href="#section-7">长驻流程还要约束等待与投递</a></li>
+</ol>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">C · 工具提示词<span>第 09 章</span></p>
+    <h1>委派、计划与任务协作的调用流程</h1>
+  </header>
+  <div class="chapter-body"><p>这一章从 <code>tools/AgentTool/prompt.ts:15-46</code>、<code>tools/AgentTool/prompt.ts:59-78</code>、<code>tools/AgentTool/prompt.ts:190-218</code>、<code>tools/EnterPlanModeTool/prompt.ts:4-64</code>、<code>tools/EnterPlanModeTool/prompt.ts:93-136</code>、<code>tools/EnterPlanModeTool/prompt.ts:160-170</code> 和 <code>tools/TeamCreateTool/prompt.ts:1-63</code>、<code>tools/TeamCreateTool/prompt.ts:74-113</code> 看工具描述怎样安排多人或多阶段工作。它们值得放在一起，因为委派、审批、状态更新与消息投递都要求前后步骤接得上；发出工具调用并不自动等于对方收到了足够材料，或用户看见了可批准的计划。</p>
+<h2 id="section-1">可用 agent 类型先被筛选</h2>
+<p>委派之前先要形成一个可信的候选集合：agent名能被模型看到，不能同时说明它适合当前任务或具有实现能力。描述生成器把工具限制与类型限制分开处理，正适合检验这两个问题（C-14）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/AgentTool/prompt.ts:15-46</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/AgentTool/prompt.ts#L15-L46">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#001" data-quote-type="C" data-source-range="tools/AgentTool/prompt.ts:15-46">// … 省略 5 行（tools/AgentTool/prompt.ts:L15-L19）
+  if (hasAllowlist &amp;&amp; hasDenylist) {
+    // Both defined: filter allowlist by denylist to match runtime behavior
+    const denySet = new Set(disallowedTools)
+    const effectiveTools = tools.filter(t =&gt; !denySet.has(t))
+    if (effectiveTools.length === 0) {
+      return &#x27;None&#x27;
+    }
+    return effectiveTools.join(&#x27;, &#x27;)
+// … 省略 19 行（tools/AgentTool/prompt.ts:L28-L46）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/AgentTool/prompt.ts:15-46</code>。</p>
+<p>允许列表减拒绝列表是在描述生成时完成，说明“被允许”首先是模型看到的候选集合。实际工具权限和执行时输入还未发生；类型过滤也不会替代后面的工具池和权限检查。委派协议从一开始就有两层可见性。</p>
+<p>列表的来源是第一层；描述里列出哪些使用场景是第二层。模型可能看到一个类型，却被说明文字要求在小范围搜索时不要派它。可用和适用必须分别判断。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/AgentTool/prompt.ts:59-78</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/AgentTool/prompt.ts#L59-L78">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#002" data-quote-type="C" data-source-range="tools/AgentTool/prompt.ts:59-78">export function shouldInjectAgentListInMessages(): boolean {
+  if (isEnvTruthy(process.env.CLAUDE_CODE_AGENT_LIST_IN_MESSAGES)) return true
+  if (isEnvDefinedFalsy(process.env.CLAUDE_CODE_AGENT_LIST_IN_MESSAGES))
+    return false
+  return getFeatureValue_CACHED_MAY_BE_STALE(&#x27;tengu_agent_list_attach&#x27;, false)
+}
+// … 省略 6 行（tools/AgentTool/prompt.ts:L65-L70）
+  // Filter agents by allowed types when Agent(x,y) restricts which agents can be spawned
+  const effectiveAgents = allowedAgentTypes
+    ? agentDefinitions.filter(a =&gt; allowedAgentTypes.includes(a.agentType))
+    : agentDefinitions
+// … 省略 4 行（tools/AgentTool/prompt.ts:L75-L78）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/AgentTool/prompt.ts:59-78</code>。</p>
+<p>coordinator只得到共同核心文本，普通模式才追加不适用情境和说明。相同Agent工具名因此可能收到不同长度的微型harness，这种差异来自调用者模式，不是agent定义自身变化。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/AgentTool/prompt.ts:190-218</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/AgentTool/prompt.ts#L190-L218">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#003" data-quote-type="P" data-source-range="tools/AgentTool/prompt.ts:190-218">// … 省略 4 行（tools/AgentTool/prompt.ts:L190-L193）
+  const listViaAttachment = shouldInjectAgentListInMessages()
+
+  const agentListSection = listViaAttachment
+    ? `Available agent types are listed in &lt;system-reminder&gt; messages in the conversation.`
+    : `Available agent types and the tools they have access to:
+${effectiveAgents.map(agent =&gt; formatAgentLine(agent)).join(&#x27;\n&#x27;)}`
+// … 省略 19 行（tools/AgentTool/prompt.ts:L200-L218）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/AgentTool/prompt.ts:190-218</code>。</p>
+<p>因此，任务“适合 agent”仍需核对具体类型能不能写文件、有哪些工具。TeamCreate 的文本明确禁止把实现交给只读 agent，要求先看 Agent 描述中的能力（<code>tools/TeamCreateTool/prompt.ts:1-63</code>、<code>tools/TeamCreateTool/prompt.ts:74-113</code>）。委派选择不能只靠名字像研究员或工程师；当前列表与工具限制才是交接目标的实际输入。</p>
+<p>未开启 fork 的使用说明把明确路径和小范围搜索留给直接工具，要求短 description、向用户总结不可见结果、按是否依赖结果选择前台或后台。后台结束靠通知，不主动 sleep/轮询；交接必须说明是研究还是写代码，继续 agent 用 SendMessage。任务边界和等待方式同时写进了这份描述（C-15）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/AgentTool/prompt.ts:220-249</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/AgentTool/prompt.ts#L220-L249">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#004" data-quote-type="P" data-source-range="tools/AgentTool/prompt.ts:220-249">// … 省略 12 行（tools/AgentTool/prompt.ts:L220-L231）
+  const whenNotToUseSection = forkEnabled
+    ? &#x27;&#x27;
+    : `
+When NOT to use the ${AGENT_TOOL_NAME} tool:
+- If you want to read a specific file path, use the ${FILE_READ_TOOL_NAME} tool or ${fileSearchHint} instead of the ${AGENT_TOOL_NAME} tool, to find the match more quickly
+- If you are searching for a specific class definition like &quot;class Foo&quot;, use ${contentSearchHint} instead, to find the match more quickly
+- If you are searching for code within a specific file or set of 2-3 files, use the ${FILE_READ_TOOL_NAME} tool instead of the ${AGENT_TOOL_NAME} tool, to find the match more quickly
+- Other tasks that are not related to the agent descriptions above
+`
+// … 省略 9 行（tools/AgentTool/prompt.ts:L241-L249）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/AgentTool/prompt.ts:220-249</code>。</p>
+<p>前台/后台的选择其实是结果依赖的选择：后台不能立即提供主任务必需的中间值，通知才是它的返回通道。短description要求则约束交接的输入大小，不能把“用户看不到原始输出”当成“可以省略结论”。</p>
+<p>委派说明和等待说明共同构成返回协议：描述谁做什么，通知何时回来，SendMessage如何继续。任一项缺失都可能让主任务既没有结果也没有可复述的结论。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/AgentTool/prompt.ts:251-287</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/AgentTool/prompt.ts#L251-L287">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#005" data-quote-type="P" data-source-range="tools/AgentTool/prompt.ts:251-287">// … 省略 12 行（tools/AgentTool/prompt.ts:L251-L262）
+- You can optionally run agents in the background using the run_in_background parameter. When an agent runs in the background, you will be automatically notified when it completes — do NOT sleep, poll, or proactively check on its progress. Continue with other work or respond to the user instead.
+- **Foreground vs background**: Use foreground (default) when you need the agent&#x27;s results before you can proceed — e.g., research agents whose findings inform your next steps. Use background when you have genuinely independent work to do in parallel.`
+      : &#x27;&#x27;
+  }
+- To continue a previously spawned agent, use ${SEND_MESSAGE_TOOL_NAME} with the agent&#x27;s ID or name as the \`to\` field. The agent resumes with its full context preserved. ${forkEnabled ? &#x27;Each fresh Agent invocation with a subagent_type starts without context — provide a complete task description.&#x27; : &#x27;Each Agent invocation starts fresh — provide a complete task description.&#x27;}
+- The agent&#x27;s outputs should generally be trusted
+- Clearly tell the agent whether you expect it to write code or just to do research (search, file reads, web fetches, etc.)${forkEnabled ? &#x27;&#x27; : &quot;, since it is not aware of the user&#x27;s intent&quot;}
+// … 省略 18 行（tools/AgentTool/prompt.ts:L270-L287）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/AgentTool/prompt.ts:251-287</code>。</p>
+<p>teammate上下文还会删除不适用参数说明，说明同一个文本生成器会根据接收者裁切协议。裁切不是删掉执行能力，而是删掉当前接收者不该使用的交接入口。</p>
+<h2 id="section-2">fork 的交接与上下文不同</h2>
+<p>fork 分支把不值得保留中间输出作为使用情境，要求等通知，不偷看输出文件，不预测结果；fresh agent 则要求完整交代目标、已有发现、排除项、判断背景与所需回应长度。它还禁止把“理解用户任务”直接交给子 agent，说明调用者应先确定自己的请求（C-16）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/AgentTool/prompt.ts:80-113</code><span>摘录 15 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/AgentTool/prompt.ts#L80-L113">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#006" data-quote-type="P" data-source-range="tools/AgentTool/prompt.ts:80-113">// … 省略 5 行（tools/AgentTool/prompt.ts:L80-L84）
+Fork yourself (omit \`subagent_type\`) when the intermediate tool output isn&#x27;t worth keeping in your context. The criterion is qualitative \u2014 &quot;will I need this output again&quot; \u2014 not task size.
+- **Research**: fork open-ended questions. If research can be broken into independent questions, launch parallel forks in one message. A fork beats a fresh subagent for this \u2014 it inherits context and shares your cache.
+- **Implementation**: prefer to fork implementation work that requires more than a couple of edits. Do research before jumping to implementation.
+
+Forks are cheap because they share your prompt cache. Don&#x27;t set \`model\` on a fork \u2014 a different model can&#x27;t reuse the parent&#x27;s cache. Pass a short \`name\` (one or two words, lowercase) so the user can see the fork in the teams panel and steer it mid-run.
+
+**Don&#x27;t peek.** The tool result includes an \`output_file\` path — do not Read or tail it unless the user explicitly asks for a progress check. You get a completion notification; trust it. Reading the transcript mid-flight pulls the fork&#x27;s tool noise into your context, which defeats the point of forking.
+
+**Don&#x27;t race.** After launching, you know nothing about what the fork found. Never fabricate or predict fork results in any format — not as prose, summary, or structured output. The notification arrives as a user-role message in a later turn; it is never something you write yourself. If the user asks a follow-up before the notification lands, tell them the fork is still running — give status, not a guess.
+
+**Writing a fork prompt.** Since the fork inherits your context, the prompt is a *directive* — what to do, not what the situation is. Be specific about scope: what&#x27;s in, what&#x27;s out, what another agent is handling. Don&#x27;t re-explain background.
+// … 省略 14 行（tools/AgentTool/prompt.ts:L96-L109）
+${forkEnabled ? &#x27;For fresh agents, terse&#x27; : &#x27;Terse&#x27;} command-style prompts produce shallow, generic work.
+
+**Never delegate understanding.** Don&#x27;t write &quot;based on your findings, fix the bug&quot; or &quot;based on the research, implement it.&quot; Those phrases push synthesis onto the agent instead of doing it yourself. Write prompts that prove you understood: include file paths, line numbers, what specifically to change.
+`
+</code></pre></details></figure>
+<p>原文依据：<code>tools/AgentTool/prompt.ts:80-113</code>。</p>
+<p>fork把“不要偷看输出文件”与“等待通知”放在同一组规则中，限制了调用者从旁路重建结果；fresh agent的背景字段则让新执行者可以在没有原始上下文时独立判断。两种形式都在减少中间状态泄漏，但交接材料的颗粒度相反。</p>
+<p>fork依赖主线程保留的任务目标，fresh agent依赖调用者重新写出的背景；两者都把“已有原始上下文”作为不同的资源。选错形式的结果不是只多几句提示，而是子任务可能无法判断自己应交付什么。</p>
+<p>（原文见 tools/AgentTool/prompt.ts:115-154，共 40 行，略）</p>
+<p>原文依据：<code>tools/AgentTool/prompt.ts:115-154</code>。</p>
+<p>主系统对 fork 自身还有“不再转派”的规则，见第 4 章（<code>constants/prompts.ts:316-320</code>）。两处配对后能看清委派责任：调用者决定范围并准备材料，执行者完成已界定任务，回报时给结果。提示里的性能或质量说法按文本保存，本章不把后台形式本身当成已经更快的证明。</p>
+<p>选择前后台也不是“长任务一律后台”。描述按调用者是否马上需要结果决定，等待目标在通知到达后继续。若主任务没有结果便不能前进，仍把它放后台并不停查询输出，会偏离这里写的流程；若结果可稍后接入，就不必让主线程保存所有原始中间材料。</p>
+<h2 id="section-3">技能调用要么已加载，要么先加载</h2>
+<p>Skill 的描述要求匹配时先调用再对任务作其他响应，不能只说技能有用却不执行。已运行技能不能重复调用；看到 command-name 标签说明已加载，应遵循展开指令。可用技能列表来自 system-reminder，内建 CLI 命令排除在技能调用之外（C-17）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/SkillTool/prompt.ts:173-196</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/SkillTool/prompt.ts#L173-L196">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#008" data-quote-type="P" data-source-range="tools/SkillTool/prompt.ts:173-196">// … 省略 16 行（tools/SkillTool/prompt.ts:L173-L188）
+- Available skills are listed in system-reminder messages in the conversation
+- When a skill matches the user&#x27;s request, this is a BLOCKING REQUIREMENT: invoke the relevant Skill tool BEFORE generating any other response about the task
+- NEVER mention a skill without actually calling this tool
+- Do not invoke a skill that is already running
+- Do not use this tool for built-in CLI commands (like /help, /clear, etc.)
+- If you see a &lt;${COMMAND_NAME_TAG}&gt; tag in the current conversation turn, the skill has ALREADY been loaded - follow the instructions directly instead of calling this tool again
+// … 省略 2 行（tools/SkillTool/prompt.ts:L195-L196）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/SkillTool/prompt.ts:173-196</code>。</p>
+<p>Skill的阻塞条件发生在普通回复之前，因此它不是一般“可选的参考资料”。command-name标签又是宿主告诉模型已加载的状态信号；仅有system-reminder里的一行技能名还不等于完整prompt已经展开，调用时机正是这段协议要固定的地方。</p>
+<p>这是一套加载状态的约定。名字列出、调用已发出、完整提示已展开，分别对应不同阶段；描述特意处理“已经出现指令”时该怎么办。它没有让模型把任意斜杠字符串猜成技能，名称集合的限制见第 4 章。清单预算又由第 14 章解释，调用协议与发现长度各有位置。</p>
+<h2 id="section-4">计划工具对歧义的门槛不同</h2>
+<p>计划门槛不是一份全局规范：相同的多文件请求在外部与内部文字中有不同位置。必须保留选择分支，才能解释“先规划”与“直接开始”为什么都出现在源码里（C-20）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/EnterPlanModeTool/prompt.ts:4-64</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/EnterPlanModeTool/prompt.ts#L4-L64">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#009" data-quote-type="P" data-source-range="tools/EnterPlanModeTool/prompt.ts:4-64">// … 省略 41 行（tools/EnterPlanModeTool/prompt.ts:L4-L44）
+5. **Multi-File Changes**: The task will likely touch more than 2-3 files
+   - Example: &quot;Refactor the authentication system&quot;
+   - Example: &quot;Add a new API endpoint with tests&quot;
+// … 省略 9 行（tools/EnterPlanModeTool/prompt.ts:L48-L56）
+## When NOT to Use This Tool
+
+Only skip EnterPlanMode for simple tasks:
+- Single-line or few-line fixes (typos, obvious bugs, small tweaks)
+- Adding a single function with clear requirements
+- Tasks where the user has given very specific, detailed instructions
+- Pure research/exploration tasks (use the Agent tool with explore agent instead)
+
+</code></pre></details></figure>
+<p>原文依据：<code>tools/EnterPlanModeTool/prompt.ts:4-64</code>。</p>
+<p>外部与内部文案的差别不只是触发数量：外部强调“多文件”，内部要求真实歧义。相同用户请求在不同USER_TYPE分支可能得到不同的计划门槛；把外部清单抽成全局规则会抹掉这个条件。interview phase又说明流程文字可能转移到附件。</p>
+<p>外部段的“何时使用”与“何时不使用”构成一对边界：多文件只是候选条件，纯研究又被排除。模型不能从一个命中项跳过其余排除项。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/EnterPlanModeTool/prompt.ts:93-136</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/EnterPlanModeTool/prompt.ts#L93-L136">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#010" data-quote-type="P" data-source-range="tools/EnterPlanModeTool/prompt.ts:93-136">// … 省略 35 行（tools/EnterPlanModeTool/prompt.ts:L93-L127）
+Skip plan mode when you can reasonably infer the right approach:
+- The task is straightforward even if it touches multiple files
+- The user&#x27;s request is specific enough that the implementation path is clear
+- You&#x27;re adding a feature with an obvious implementation pattern (e.g., adding a button, a new endpoint following existing conventions)
+- Bug fixes where the fix is clear once you understand the bug
+- Research/exploration tasks (use the Agent tool instead)
+- The user says something like &quot;can we work on X&quot; or &quot;let&#x27;s do X&quot; — just get started
+// … 省略 2 行（tools/EnterPlanModeTool/prompt.ts:L135-L136）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/EnterPlanModeTool/prompt.ts:93-136</code>。</p>
+<p>内部段减少了明确任务的计划负担，但保留高影响重构和真实歧义的审批。两个版本都把用户批准留到计划完成后，差别在进入门槛，不在审批是否存在。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/EnterPlanModeTool/prompt.ts:160-170</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/EnterPlanModeTool/prompt.ts#L160-L170">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#011" data-quote-type="C" data-source-range="tools/EnterPlanModeTool/prompt.ts:160-170">// … 省略 6 行（tools/EnterPlanModeTool/prompt.ts:L160-L165）
+export function getEnterPlanModeToolPrompt(): string {
+  return process.env.USER_TYPE === &#x27;ant&#x27;
+    ? getEnterPlanModeToolPromptAnt()
+    : getEnterPlanModeToolPromptExternal()
+}
+</code></pre></details></figure>
+<p>原文依据：<code>tools/EnterPlanModeTool/prompt.ts:160-170</code>。</p>
+<p>如果只摘“多文件要计划”，就选中了外部版本中的一条，漏掉内部版本反过来限定的条件。完整源码也有 interview phase 省略共同流程段，因为详细步骤由附件提供。这里应从实际分支解释行为，而不是拼出一份不存在的“统一计划最佳实践”。</p>
+<p>AskUserQuestion 用于澄清偏好、歧义和方案选择；它明确不能拿来问计划是否批准，因为用户在 ExitPlanMode 前看不到计划。ExitPlanMode 要求计划先写到指定文件，不从参数传正文，调用才把文件展示并请求批准；纯研究任务不适用。审批的对象和展示时机都由这个协议限定（C-21）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>tools/AskUserQuestionTool/prompt.ts:32-44</code><span>摘录 2 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/AskUserQuestionTool/prompt.ts#L32-L44">核对原文</a></div><pre><code class="language-ts" data-block-id="09-agent-workflows.md#012" data-quote-type="P" data-source-range="tools/AskUserQuestionTool/prompt.ts:32-44">// … 省略 11 行（tools/AskUserQuestionTool/prompt.ts:L32-L42）
+Plan mode note: In plan mode, use this tool to clarify requirements or choose between approaches BEFORE finalizing your plan. Do NOT use this tool to ask &quot;Is my plan ready?&quot; or &quot;Should I proceed?&quot; - use ${EXIT_PLAN_MODE_TOOL_NAME} for plan approval. IMPORTANT: Do not reference &quot;the plan&quot; in your questions (e.g., &quot;Do you have feedback about the plan?&quot;, &quot;Does the plan look good?&quot;) because the user cannot see the plan in the UI until you call ${EXIT_PLAN_MODE_TOOL_NAME}. If you need plan approval, use ${EXIT_PLAN_MODE_TOOL_NAME} instead.
+`
+</code></pre></div></figure>
+<p>原文依据：<code>tools/AskUserQuestionTool/prompt.ts:32-44</code>。</p>
+<p>计划审批以文件为载体，AskUserQuestion以选项为载体。前者要求先写完整计划，后者禁止在用户看不到计划时问“是否同意”；如果把两者合成一项询问，模型会在没有可审查材料时提前请求授权。</p>
+<p>澄清问题可以改变计划内容，ExitPlanMode只报告计划已写好。两个工具的输入对象因此不同，先后顺序不是UI偏好，而是确保审批对象已经存在。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/ExitPlanModeTool/prompt.ts:6-29</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/ExitPlanModeTool/prompt.ts#L6-L29">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#013" data-quote-type="P" data-source-range="tools/ExitPlanModeTool/prompt.ts:6-29">// … 省略 3 行（tools/ExitPlanModeTool/prompt.ts:L6-L8）
+- You should have already written your plan to the plan file specified in the plan mode system message
+- This tool does NOT take the plan content as a parameter - it will read the plan from the file you wrote
+- This tool simply signals that you&#x27;re done planning and ready for the user to review and approve
+- The user will see the contents of your plan file when they review it
+
+## When to Use This Tool
+IMPORTANT: Only use this tool when the task requires planning the implementation steps of a task that requires writing code. For research tasks where you&#x27;re gathering information, searching files, reading files or in general trying to understand the codebase - do NOT use this tool.
+// … 省略 14 行（tools/ExitPlanModeTool/prompt.ts:L16-L29）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/ExitPlanModeTool/prompt.ts:6-29</code>。</p>
+<p>“问一个问题”和“请批准已经写好的计划”使用不同工具，不是表面交互样式的差别。若计划尚未展示就问用户“是否同意”，回答没有对应的可审查内容。工具描述给出了这一具体理由，可以用来解释调用顺序，不能仅按“都需要用户输入”归为同一步。</p>
+<h2 id="section-5">共享任务表保存依赖与所有者</h2>
+<p>创建任务不等于分派任务：默认状态和owner留空让这两步分开，描述还需支持另一个执行者接手。完成标准见第5章，这里检验共享记录能否表达尚未认领的工作（C-24）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TaskCreateTool/prompt.ts:5-56</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TaskCreateTool/prompt.ts#L5-L56">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#014" data-quote-type="P" data-source-range="tools/TaskCreateTool/prompt.ts:5-56">// … 省略 43 行（tools/TaskCreateTool/prompt.ts:L5-L47）
+All tasks are created with status \`pending\`.
+
+## Tips
+
+- Create tasks with clear, specific subjects that describe the outcome
+- After creating tasks, use TaskUpdate to set up dependencies (blocks/blockedBy) if needed
+${teammateTips}- Check TaskList first to avoid creating duplicate tasks
+// … 省略 2 行（tools/TaskCreateTool/prompt.ts:L55-L56）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TaskCreateTool/prompt.ts:5-56</code>。</p>
+<p>pending是创建时状态，owner却要另一步设置；描述足够详细只是让被指派者能接手，不能替TaskUpdate完成认领。字段的默认值和协作语义因此分开：工具可以成功创建一项空owner任务，流程仍未完成派发。</p>
+<p>TaskGet 要求开工前 blockedBy 为空，返回完整需求和依赖；TaskList 列摘要，把未认领、pending、无阻塞列为可做，建议按 ID 顺序，完成后查新解锁任务。TaskUpdate 更新前还要求先读取当前状态。状态、依赖和认领三者共同决定下一项，不是看到一个 pending 就直接开始（C-26、C-25）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TaskGetTool/prompt.ts:1-24</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TaskGetTool/prompt.ts#L1-L24">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#015" data-quote-type="P" data-source-range="tools/TaskGetTool/prompt.ts:1-24">// … 省略 15 行（tools/TaskGetTool/prompt.ts:L1-L15）
+- **status**: &#x27;pending&#x27;, &#x27;in_progress&#x27;, or &#x27;completed&#x27;
+- **blocks**: Tasks waiting on this one to complete
+- **blockedBy**: Tasks that must complete before this one can start
+
+## Tips
+
+- After fetching a task, verify its blockedBy list is empty before beginning work.
+- Use TaskList to see all tasks in summary form.
+`
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TaskGetTool/prompt.ts:1-24</code>。</p>
+<p>blockedBy为空是开始条件，TaskList的pending是候选状态，二者不是同一个判断。一个任务可能pending但有依赖，或未认领而可做；先取详情、再认领、完成后再查解锁项，正是提示词把状态查询接成流程的地方。</p>
+<p>TaskGet提供双向依赖的完整需求，TaskList提供可扫的摘要；前者适合确认一项是否安全开工，后者适合寻找下一项。不能用摘要缺失的blockedBy字段替完整任务详情。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TaskListTool/prompt.ts:15-49</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TaskListTool/prompt.ts#L15-L49">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#016" data-quote-type="P" data-source-range="tools/TaskListTool/prompt.ts:15-49">// … 省略 5 行（tools/TaskListTool/prompt.ts:L15-L19）
+1. After completing your current task, call TaskList to find available work
+2. Look for tasks with status &#x27;pending&#x27;, no owner, and empty blockedBy
+3. **Prefer tasks in ID order** (lowest ID first) when multiple tasks are available, as earlier tasks often set up context for later ones
+4. Claim an available task using TaskUpdate (set \`owner\` to your name), or wait for leader assignment
+5. If blocked, focus on unblocking tasks or notify the team lead
+// … 省略 25 行（tools/TaskListTool/prompt.ts:L25-L49）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TaskListTool/prompt.ts:15-49</code>。</p>
+<p>TeamCreate 按建团队、建任务、派 agent、设 owner、执行、关闭排列步骤；成员名字用于通信，任务表用于协调。它说明消息自动投递，不需要人为轮询邮箱，也让执行者完成后看新解锁工作。当前章节可以据此还原协议，但不拿提示里的主动建团队偏好替用户授予无条件并行权限（C-27）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TeamCreateTool/prompt.ts:1-63</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TeamCreateTool/prompt.ts#L1-L63">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#017" data-quote-type="P" data-source-range="tools/TeamCreateTool/prompt.ts:1-63">// … 省略 17 行（tools/TeamCreateTool/prompt.ts:L1-L17）
+- **Read-only agents** (e.g., Explore, Plan) cannot edit or write files. Only assign them research, search, or planning tasks. Never assign them implementation work.
+- **Full-capability agents** (e.g., general-purpose) have access to all tools including file editing, writing, and bash. Use these for tasks that require making changes.
+- **Custom agents** defined in \`.claude/agents/\` may have their own tool restrictions. Check their descriptions to understand what they can and cannot do.
+
+Always review the agent type descriptions and their available tools listed in the Agent tool prompt before selecting a \`subagent_type\` for a teammate.
+// … 省略 41 行（tools/TeamCreateTool/prompt.ts:L23-L63）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TeamCreateTool/prompt.ts:1-63</code>。</p>
+<p>TeamCreate的顺序把团队目录、任务表、owner和通信地址连起来，但没有把所有任务都变成并行任务。创建团队是容器动作，具体是否值得协作仍由任务依赖和agent能力决定；提示词中的“鼓励”不能替代这两个条件。</p>
+<p>队友能力先于owner分配，任务细节先于自动投递；这两个先后把“建立团队”与“开始实施”拆开。任务表随后才成为共享的协调面。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TeamCreateTool/prompt.ts:74-113</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TeamCreateTool/prompt.ts#L74-L113">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#018" data-quote-type="P" data-source-range="tools/TeamCreateTool/prompt.ts:74-113">// … 省略 31 行（tools/TeamCreateTool/prompt.ts:L74-L104）
+**IMPORTANT notes for communication with your team**:
+- Do not use terminal tools to view your team&#x27;s activity; always send a message to your teammates (and remember, refer to them by name).
+- Your team cannot hear you if you do not use the SendMessage tool. Always send a message to your teammates if you are responding to them.
+- Do NOT send structured JSON status messages like \`{&quot;type&quot;:&quot;idle&quot;,...}\` or \`{&quot;type&quot;:&quot;task_completed&quot;,...}\`. Just communicate in plain text when you need to message teammates.
+- Use TaskUpdate to mark tasks completed.
+- If you are an agent in the team, the system will automatically send idle notifications to the team lead when you stop.
+
+`.trim()
+}
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TeamCreateTool/prompt.ts:74-113</code>。</p>
+<p>成员名和任务owner把共享记录接到通信地址，自动投递又让队友无需轮询才能得到消息。它仍要求执行者看任务表找解锁工作，说明消息通知没有替代依赖状态；下一节正把这两条通道分开读。</p>
+<h2 id="section-6">消息与状态不能互相替代</h2>
+<p>通信与共享状态各有消费者，不能靠一条普通回复同时完成二者。SendMessage的协议明确接收地址和请求关联，而任务状态另交TaskUpdate；地址扩展又受UDS特性限制（C-28）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/SendMessageTool/prompt.ts:1-49</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/SendMessageTool/prompt.ts#L1-L49">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#019" data-quote-type="P" data-source-range="tools/SendMessageTool/prompt.ts:1-49">// … 省略 30 行（tools/SendMessageTool/prompt.ts:L1-L30）
+| \`to\` | |
+|---|---|
+| \`&quot;researcher&quot;\` | Teammate by name |
+| \`&quot;*&quot;\` | Broadcast to all teammates — expensive (linear in team size), use only when everyone genuinely needs it |${udsRow}
+
+Your plain text output is NOT visible to other agents — to communicate, you MUST call this tool. Messages from teammates are delivered automatically; you don&#x27;t check an inbox. Refer to teammates by name, never by UUID. When relaying, don&#x27;t quote the original — it&#x27;s already rendered to the user.${udsSection}
+// … 省略 13 行（tools/SendMessageTool/prompt.ts:L37-L49）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/SendMessageTool/prompt.ts:1-49</code>。</p>
+<p>消息与任务状态各有不可替代的信息：消息面向某个接收者，TaskUpdate面向共享表。广播“everyone”还会把成本线性扩散到成员数；所以团队协议要求只在全员确实需要时广播，而非把状态同步当消息广播。</p>
+<p>这套要求区分了通知对方与更新共享记录。发一条“我做完了”不自动更新 owner 或 dependencies，写一个 completed 也不等于给特定队友答复问题。描述分别指定工具与字段，调用者要按对象选择。广播的线性成本是原文提示的理由，不能由它推出当前团队规模下的实际时延。</p>
+<p>TaskStop 按 task_id 停后台任务；TeamDelete 删除团队和任务目录、清会话团队上下文，描述要求先关闭活跃成员。两种清理不是同一个动作，完成一个后台子任务并不自动结束整个团队（C-29）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TaskStopTool/prompt.ts:1-8</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TaskStopTool/prompt.ts#L1-L8">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#020" data-quote-type="P" data-source-range="tools/TaskStopTool/prompt.ts:1-8">// … 省略 3 行（tools/TaskStopTool/prompt.ts:L1-L3）
+- Stops a running background task by its ID
+- Takes a task_id parameter identifying the task to stop
+- Returns a success or failure status
+- Use this tool when you need to terminate a long-running task
+`
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TaskStopTool/prompt.ts:1-8</code>。</p>
+<p>TeamDelete的失败条件在活跃成员，TaskStop只按task_id结束后台任务。一个任务停了，团队可能仍有成员和目录；一个团队关闭，也不等于逐项任务都得到成功状态。清理动作的对象范围需要从工具名和参数一起读。</p>
+<p>TaskStop的失败只关联一个后台任务，TeamDelete的失败可能来自成员生命周期；因此清理顺序是状态依赖，不是两个独立按钮的排列。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TeamDeleteTool/prompt.ts:1-16</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TeamDeleteTool/prompt.ts#L1-L16">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#021" data-quote-type="P" data-source-range="tools/TeamDeleteTool/prompt.ts:1-16">// … 省略 4 行（tools/TeamDeleteTool/prompt.ts:L1-L4）
+Remove team and task directories when the swarm work is complete.
+
+This operation:
+- Removes the team directory (\`~/.claude/teams/{team-name}/\`)
+- Removes the task directory (\`~/.claude/tasks/{team-name}/\`)
+- Clears team context from the current session
+
+**IMPORTANT**: TeamDelete will fail if the team still has active members. Gracefully terminate teammates first, then call TeamDelete after all teammates have shut down.
+// … 省略 4 行（tools/TeamDeleteTool/prompt.ts:L13-L16）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TeamDeleteTool/prompt.ts:1-16</code>。</p>
+<p>团队删除还会清会话团队上下文，说明它影响的不只是磁盘目录。成员先关闭，是让这个上下文变化不会截断仍在运行的交接。</p>
+<h2 id="section-7">长驻流程还要约束等待与投递</h2>
+<p>Cron 描述按 durableEnabled 增减持久化文字，durable:true 要用户明确想保留任务；近似时间避开整点半点，明确时间则尊重指定值。运行说明还写 idle 时触发、jitter、到期和用户告知。它组织的是定时工作及其生命周期，不能把当前会话的提醒自动外推成长期调度（C-35）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/ScheduleCronTool/prompt.ts:68-135</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/ScheduleCronTool/prompt.ts#L68-L135">核对原文</a></summary><pre><code class="language-ts" data-block-id="09-agent-workflows.md#022" data-quote-type="P" data-source-range="tools/ScheduleCronTool/prompt.ts:68-135">// … 省略 35 行（tools/ScheduleCronTool/prompt.ts:L68-L102）
+## Avoid the :00 and :30 minute marks when the task allows it
+
+Every user who asks for &quot;9am&quot; gets \`0 9\`, and every user who asks for &quot;hourly&quot; gets \`0 *\` — which means requests from across the planet land on the API at the same instant. When the user&#x27;s request is approximate, pick a minute that is NOT 0 or 30:
+  &quot;every morning around 9&quot; → &quot;57 8 * * *&quot; or &quot;3 9 * * *&quot; (not &quot;0 9 * * *&quot;)
+  &quot;hourly&quot; → &quot;7 * * * *&quot; (not &quot;0 * * * *&quot;)
+  &quot;in an hour or so, remind me to...&quot; → pick whatever minute you land on, don&#x27;t round
+
+Only use minute 0 or 30 when the user names that exact time and clearly means it (&quot;at 9:00 sharp&quot;, &quot;at half past&quot;, coordinating with a meeting). When in doubt, nudge a few minutes early or late — the user will not notice, and the fleet will.
+// … 省略 25 行（tools/ScheduleCronTool/prompt.ts:L111-L135）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/ScheduleCronTool/prompt.ts:68-135</code>。</p>
+<p>durable字段改变的是跨会话生命周期，时间近似规则改变的是调度分钟，idle触发说明改变的是运行上下文。三者并列在一个prompt里，却不会因为用户说“提醒我”就自动选择持久化。是否保存和何时触发是两种不同的授权问题。</p>
+<p>Sleep 文案要求没事就等待，并提醒每次唤醒的 API 调用和缓存过期；Brief 把用户主要能见的回复放进 SendUserMessage，普通文字只在详细视图可见。这两份提示都让“发出了文本”不等于“用户看见最终结果”，结果该从哪个通道交付有明确要求（<code>tools/BriefTool/prompt.ts:1-22</code>、<code>tools/SleepTool/prompt.ts:1-17</code>）。</p>
+<p>worktree 的进入、退出与丢弃授权已在第 4 章完整解释（<code>tools/EnterWorktreeTool/prompt.ts:1-30</code>、<code>tools/ExitWorktreeTool/prompt.ts:1-32</code>），本章不再重复。协作流程最终仍须回到实际执行：计划已批准，任务已认领，消息已交接，这些都不直接决定某次工具输入的 allow、deny、ask。下一卷从<a href="10-permission-pipeline.html">第 10 章</a>追踪那个判定。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="08-file-shell.html"><span class="page-direction">&larr; 上一章</span><span>第 8 章 · 文件与 shell 工具怎样约束调用</span></a>
+<a href="10-permission-pipeline.html"><span class="page-direction">&rarr; 下一章</span><span>第 10 章 · 一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 14 章 · 窗口、字符与 token：几种预算各算什么 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html" aria-current="page"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+<ol class="section-list">
+<li><a href="#section-1">默认容量与本次采用的窗口不同</a></li>
+<li><a href="#section-2">已计入 usage 的历史与未发送尾部要对齐</a></li>
+<li><a href="#section-3">摘要输出空间和触发缓冲两次扣除</a></li>
+<li><a href="#section-4">局部字符预算容许历史超额</a></li>
+<li><a href="#section-5">技能预算按发现优先级分配</a></li>
+<li><a href="#section-6">工作最低要求与实际停止条件有张力</a></li>
+<li><a href="#section-7">API余额跨压缩保存另一种计数</a></li>
+</ol>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html" aria-current="page"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+<ol class="section-list">
+<li><a href="#section-1">默认容量与本次采用的窗口不同</a></li>
+<li><a href="#section-2">已计入 usage 的历史与未发送尾部要对齐</a></li>
+<li><a href="#section-3">摘要输出空间和触发缓冲两次扣除</a></li>
+<li><a href="#section-4">局部字符预算容许历史超额</a></li>
+<li><a href="#section-5">技能预算按发现优先级分配</a></li>
+<li><a href="#section-6">工作最低要求与实际停止条件有张力</a></li>
+<li><a href="#section-7">API余额跨压缩保存另一种计数</a></li>
+</ol>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">E · 上下文与记忆预算<span>第 14 章</span></p>
+    <h1>窗口、字符与 token：几种预算各算什么</h1>
+  </header>
+  <div class="chapter-body"><p>上下文卷按客户端计算、请求配置与文字要求分别取证，方法边界见阅读说明。本章从 <code>utils/context.ts:8-16</code>、<code>utils/context.ts:27-112</code>、<code>utils/tokens.ts:40-65</code>、<code>utils/tokens.ts:214-261</code>、<code>services/tokenEstimation.ts:203-208</code> 和 <code>query.ts:280-280</code>、<code>query/tokenBudget.ts:3-19</code>、<code>query/tokenBudget.ts:45-93</code>、<code>utils/tokenBudget.ts:66-73</code>、<code>query.ts:1308-1339</code> 检查预算。真正的问题是哪个消费者拿数量作什么决定：窗口控制材料容量，继续目标控制再做一轮，字符预算控制局部列表。数字相同，不能因此共用一个余额。</p>
+<h2 id="section-1">默认容量与本次采用的窗口不同</h2>
+<p>窗口常量只是能力选择的回退值；compact 输出常量也不是所有请求的同一输出额度。先保留这组不同用途的常量，再看覆盖的优先级（E-01）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/context.ts:8-16</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/context.ts#L8-L16">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#001" data-quote-type="C" data-source-range="utils/context.ts:8-16">// Model context window size (200k tokens for all models right now)
+export const MODEL_CONTEXT_WINDOW_DEFAULT = 200_000
+
+// Maximum output tokens for compact operations
+export const COMPACT_MAX_OUTPUT_TOKENS = 20_000
+
+// Default max output tokens
+const MAX_OUTPUT_TOKENS_DEFAULT = 32_000
+const MAX_OUTPUT_TOKENS_UPPER_LIMIT = 64_000
+</code></pre></details></figure>
+<p>注释称当时所有模型二十万，后面的函数却已有多个更大窗口路径。常量说明与具体选择必须连读，不能单摘注释给整个程序固定容量。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/context.ts:27-112</code><span>摘录 14 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/context.ts#L27-L112">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#002" data-quote-type="C" data-source-range="utils/context.ts:27-112">// … 省略 32 行（utils/context.ts:L27-L58）
+  if (
+    process.env.USER_TYPE === &#x27;ant&#x27; &amp;&amp;
+    process.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS
+  ) {
+    const override = parseInt(process.env.CLAUDE_CODE_MAX_CONTEXT_TOKENS, 10)
+    if (!isNaN(override) &amp;&amp; override &gt; 0) {
+      return override
+    }
+  }
+
+  // [1m] suffix — explicit client-side opt-in, respected over all detection
+  if (has1mContext(model)) {
+    return 1_000_000
+  }
+// … 省略 40 行（utils/context.ts:L73-L112）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/context.ts:27-112</code>。</p>
+<p>内部正数覆盖优先于显式 [1m]，可以在仍使用大窗口端点时限制本地判断。禁用1M也不等于忽略所有模型能力字段，而是限制超默认窗口的相应分支。支持多少、本次按多少作阈值判断和客户端选择哪项，是三个需分别回答的问题。</p>
+<h2 id="section-2">已计入 usage 的历史与未发送尾部要对齐</h2>
+<p>窗口占用不能只加当前消息长度，也不能只看末次 API usage。后者描述过去一次请求，工具结果在响应后产生，下一次请求又会把它们带上（E-02）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/tokens.ts:40-65</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/tokens.ts#L40-L65">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#003" data-quote-type="C" data-source-range="utils/tokens.ts:40-65">// … 省略 6 行（utils/tokens.ts:L40-L45）
+export function getTokenCountFromUsage(usage: Usage): number {
+  return (
+    usage.input_tokens +
+    (usage.cache_creation_input_tokens ?? 0) +
+    (usage.cache_read_input_tokens ?? 0) +
+    usage.output_tokens
+  )
+// … 省略 13 行（utils/tokens.ts:L53-L65）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/tokens.ts:40-65</code>。</p>
+<p>cache read 在计费上可能不同，但内容仍占当前窗口，所以这个消费者把缓存字段一起计入。output 也进入下次对话历史。这个口径首先用于容量判断，不能直接拿来当本轮生成目标或费用。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/tokens.ts:214-261</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/tokens.ts#L214-L261">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#004" data-quote-type="M" data-source-range="utils/tokens.ts:214-261"> * Implementation note on parallel tool calls: when the model makes multiple
+ * tool calls in one response, the streaming code emits a SEPARATE assistant
+ * record per content block (all sharing the same message.id and usage), and
+ * the query loop interleaves each tool_result immediately after its tool_use.
+ * So the messages array looks like:
+ *   [..., assistant(id=A), user(result), assistant(id=A), user(result), ...]
+ * If we stop at the LAST assistant record, we only estimate the one tool_result
+ * after it and miss all the earlier interleaved tool_results — which will ALL
+ * be in the next API request. To avoid undercounting, after finding a usage-
+ * bearing record we walk back to the FIRST sibling with the same message.id
+ * so every interleaved tool_result is included in the rough estimate.
+ */
+// … 省略 36 行（utils/tokens.ts:L226-L261）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/tokens.ts:214-261</code>。</p>
+<p>并行工具结果插在共享 message.id 的多个 assistant 分片之间，锚定最后一个分片会漏算更早结果。回到首个分片后再估尾部，把“服务器已计的前缀”和“尚未发送的材料”接到同一时点。这是消息结构导致的校正，不是换一个更精确的分词器。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/tokenEstimation.ts:203-208</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/tokenEstimation.ts#L203-L208">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#005" data-quote-type="C" data-source-range="services/tokenEstimation.ts:203-208">export function roughTokenCountEstimation(
+  content: string,
+  bytesPerToken: number = 4,
+): number {
+  return Math.round(content.length / bytesPerToken)
+}
+</code></pre></details></figure>
+<p>长度除四是粗估，末次 usage 则来自响应；同一个总数里混合两种精度，仍有明确的适用范围。后面字符额度和显示宽度也各有计算，不宜因这里用四字符约一token，就把所有文字上限换算成严格token帽。</p>
+<h2 id="section-3">摘要输出空间和触发缓冲两次扣除</h2>
+<p>有效窗口要先给摘要留输出位置。这个预留在窗口缩小前按模型输出能力取较小值，环境覆盖只压小容量，不给它扩容（E-05）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/autoCompact.ts:28-49</code><span>摘录 16 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/autoCompact.ts#L28-L49">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#006" data-quote-type="C" data-source-range="services/compact/autoCompact.ts:28-49">// … 省略 6 行（services/compact/autoCompact.ts:L28-L33）
+  const reservedTokensForSummary = Math.min(
+    getMaxOutputTokensForModel(model),
+    MAX_OUTPUT_TOKENS_FOR_SUMMARY,
+  )
+  let contextWindow = getContextWindowForModel(model, getSdkBetas())
+
+  const autoCompactWindow = process.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW
+  if (autoCompactWindow) {
+    const parsed = parseInt(autoCompactWindow, 10)
+    if (!isNaN(parsed) &amp;&amp; parsed &gt; 0) {
+      contextWindow = Math.min(contextWindow, parsed)
+    }
+  }
+
+  return contextWindow - reservedTokensForSummary
+}
+</code></pre></details></figure>
+<p>注释的17387分位数解释作者为何选两万，不是每次摘要必用17387。实现又取模型max output的较小者，实际预留可以低于两万；用一个观察数字替代公式，会把模型能力这个条件抹掉。</p>
+<p>触发函数在有效窗口上再留缓冲，所以“窗口减预留”还不是自动压缩阈值。两次扣除分别给输出和触发留下空间（E-06）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/autoCompact.ts:62-91</code><span>摘录 20 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/autoCompact.ts#L62-L91">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#007" data-quote-type="C" data-source-range="services/compact/autoCompact.ts:62-91">export const AUTOCOMPACT_BUFFER_TOKENS = 13_000
+export const WARNING_THRESHOLD_BUFFER_TOKENS = 20_000
+export const ERROR_THRESHOLD_BUFFER_TOKENS = 20_000
+export const MANUAL_COMPACT_BUFFER_TOKENS = 3_000
+
+// Stop trying autocompact after this many consecutive failures.
+// BQ 2026-03-10: 1,279 sessions had 50+ consecutive failures (up to 3,272)
+// in a single session, wasting ~250K API calls/day globally.
+const MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES = 3
+// … 省略 4 行（services/compact/autoCompact.ts:L71-L74）
+  const autocompactThreshold =
+    effectiveContextWindow - AUTOCOMPACT_BUFFER_TOKENS
+
+  // Override for easier testing of autocompact
+  const envPercent = process.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE
+  if (envPercent) {
+    const parsed = parseFloat(envPercent)
+    if (!isNaN(parsed) &amp;&amp; parsed &gt; 0 &amp;&amp; parsed &lt;= 100) {
+      const percentageThreshold = Math.floor(
+        effectiveContextWindow * (parsed / 100),
+      )
+// … 省略 6 行（services/compact/autoCompact.ts:L86-L91）
+</code></pre></details></figure>
+<p>百分比覆盖用 min，只能让触发更早，不能推迟到常规阈值之后。警告、错误与手动缓冲另外服务不同事件，数值相同也不意味事件合并；还要看占用检查如何使用它们。</p>
+<p>按已有公式代入一次就能看出两层的差别：假设窗口取默认二十万、模型允许预留满两万且没有环境覆盖，有效窗口为十八万，自动阈值再减一万三千，得到十六万七千。不能只减摘要预留就说“十八万触发”，也不能将注释里的摘要输出分位数直接替换两万常量。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/autoCompact.ts:103-145</code><span>摘录 18 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/autoCompact.ts#L103-L145">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#008" data-quote-type="C" data-source-range="services/compact/autoCompact.ts:103-145">  const autoCompactThreshold = getAutoCompactThreshold(model)
+  const threshold = isAutoCompactEnabled()
+    ? autoCompactThreshold
+    : getEffectiveContextWindowSize(model)
+
+  const percentLeft = Math.max(
+    0,
+    Math.round(((threshold - tokenUsage) / threshold) * 100),
+  )
+
+  const warningThreshold = threshold - WARNING_THRESHOLD_BUFFER_TOKENS
+  const errorThreshold = threshold - ERROR_THRESHOLD_BUFFER_TOKENS
+
+  const isAboveWarningThreshold = tokenUsage &gt;= warningThreshold
+  const isAboveErrorThreshold = tokenUsage &gt;= errorThreshold
+
+  const isAboveAutoCompactThreshold =
+    isAutoCompactEnabled() &amp;&amp; tokenUsage &gt;= autoCompactThreshold
+// … 省略 25 行（services/compact/autoCompact.ts:L121-L145）
+</code></pre></details></figure>
+<p>阻塞阈值不是自动阈值的别名。余量可按自动触发基准算，同时临界标志按各自缓冲比较，这让界面百分比与是否该手动处理可能给出不同信息。是否运行主动压缩又由策略层决定，见<a href="15-compaction.html">第15章</a>（<code>services/compact/autoCompact.ts:147-183</code>、<code>services/compact/autoCompact.ts:185-239</code>）。</p>
+<h2 id="section-4">局部字符预算容许历史超额</h2>
+<p>工具结果的aggregate额度限制单条user消息，不限制所有轮次结果总和。把两份十五万结果放在不同消息，和放在同一批并行结果里，按注释会得到不同处理（E-04）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/toolLimits.ts:35-49</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/toolLimits.ts#L35-L49">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#009" data-quote-type="M" data-source-range="constants/toolLimits.ts:35-49">// … 省略 1 行（constants/toolLimits.ts:L35-L35）
+ * Default maximum aggregate size in characters for tool_result blocks within
+ * a SINGLE user message (one turn&#x27;s batch of parallel tool results). When a
+ * message&#x27;s blocks together exceed this, the largest blocks in that message
+ * are persisted to disk and replaced with previews until under budget.
+ * Messages are evaluated independently — a 150K result in one turn and a
+ * 150K result in the next are both untouched.
+// … 省略 4 行（constants/toolLimits.ts:L42-L45）
+ * Overridable at runtime via GrowthBook flag tengu_hawthorn_window — see
+ * getPerMessageBudgetLimit() in toolResultStorage.ts.
+ */
+export const MAX_TOOL_RESULTS_PER_MESSAGE_CHARS = 200_000
+</code></pre></details></figure>
+<p>原文依据：<code>constants/toolLimits.ts:35-49</code>。</p>
+<p>二十万字符与窗口二十万token没有同一单位；它防的是多工具单项限额叠成一条巨消息。具体是否启用、是否允许替换已见历史，还由下一块状态选择决定。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/toolResultStorage.ts:415-463</code><span>摘录 20 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/toolResultStorage.ts#L415-L463">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#010" data-quote-type="C" data-source-range="utils/toolResultStorage.ts:415-463">// … 省略 11 行（utils/toolResultStorage.ts:L415-L425）
+  if (
+    typeof override === &#x27;number&#x27; &amp;&amp;
+    Number.isFinite(override) &amp;&amp;
+    override &gt; 0
+  ) {
+    return override
+  }
+// … 省略 18 行（utils/toolResultStorage.ts:L433-L450）
+  const enabled = getFeatureValue_CACHED_MAY_BE_STALE(
+    &#x27;tengu_hawthorn_steeple&#x27;,
+    false,
+  )
+  if (!enabled) return undefined
+  if (initialMessages) {
+    return reconstructContentReplacementState(
+      initialMessages,
+      initialContentReplacements ?? [],
+    )
+  }
+  return createContentReplacementState()
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/toolResultStorage.ts:415-463</code>。</p>
+<p>这里验证覆盖为有限正数，但开关关时连replacement state都不创建。恢复会话又冻结已见候选，避免模型先见完整结果、后来同一历史被换成预览。稳定重放优先于把旧消息重新压到当前额度内，例外接着落在替换选择器中。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/toolResultStorage.ts:669-692</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/toolResultStorage.ts#L669-L692">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#011" data-quote-type="M" data-source-range="utils/toolResultStorage.ts:669-692">/**
+ * Pick the largest fresh results to replace until the model-visible total
+ * (frozen + remaining fresh) is at or under budget, or fresh is exhausted.
+ * If frozen results alone exceed budget we accept the overage — microcompact
+ * will eventually clear them.
+ */
+// … 省略 18 行（utils/toolResultStorage.ts:L675-L692）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/toolResultStorage.ts:669-692</code>。</p>
+<p>冻结内容单独超额时接受超额；新候选选取又先减整个原大小，暂不知道预览占多少。故选择目标不宜说成对任何输入都严格封顶。源码注释已说明用近似尺寸选择，这个局部算法同时保留历史一致性与估算误差。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/toolResultStorage.ts:912-936</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/toolResultStorage.ts#L912-L936">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#012" data-quote-type="C" data-source-range="utils/toolResultStorage.ts:912-936">// … 省略 18 行（utils/toolResultStorage.ts:L912-L929）
+  if (!state) return messages
+  const result = await enforceToolResultBudget(messages, state, skipToolNames)
+  if (result.newlyReplaced.length &gt; 0) {
+    writeToTranscript?.(result.newlyReplaced)
+  }
+  return result.messages
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/toolResultStorage.ts:912-936</code>。</p>
+<p>只有新替换才触发可选转录回调，持久化范围由调用方传不传callback决定；临时fork可以使用替换而不写转录。处理材料、重放选择和保存记录各有条件，不是一个名为budget的值自动完成所有动作。</p>
+<h2 id="section-5">技能预算按发现优先级分配</h2>
+<p>技能目录的每项帽与总表预算有不同强度。前者对包括内置在内的描述先裁切，后者为内置项保留优先级；“永不截断内置”只能对第二次分配成立（E-43）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/SkillTool/prompt.ts:20-50</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/SkillTool/prompt.ts#L20-L50">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#013" data-quote-type="C" data-source-range="tools/SkillTool/prompt.ts:20-50">// Skill listing gets 1% of the context window (in characters)
+export const SKILL_BUDGET_CONTEXT_PERCENT = 0.01
+export const CHARS_PER_TOKEN = 4
+export const DEFAULT_CHAR_BUDGET = 8_000 // Fallback: 1% of 200k × 4
+
+// Per-entry hard cap. The listing is for discovery only — the Skill tool loads
+// full content on invoke, so verbose whenToUse strings waste turn-1 cache_creation
+// tokens without improving match rate. Applies to all entries, including bundled,
+// since the cap is generous enough to preserve the core use case.
+export const MAX_LISTING_DESC_CHARS = 250
+// … 省略 21 行（tools/SkillTool/prompt.ts:L30-L50）
+</code></pre></details></figure>
+<p>环境覆盖这里只以Number结果是否为真判断，没有像工具结果预算那样检查finite且positive。因此“预算覆盖都受同样正数校验”不成立。默认按窗口估百分之一也只是发现文字的计算，不能用来限制Skill调用取得的正文。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/SkillTool/prompt.ts:68-171</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/SkillTool/prompt.ts#L68-L171">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#014" data-quote-type="C" data-source-range="tools/SkillTool/prompt.ts:68-171">// … 省略 95 行（tools/SkillTool/prompt.ts:L68-L162）
+  return commands
+    .map((cmd, i) =&gt; {
+      // Bundled skills always get full descriptions
+      if (bundledIndices.has(i)) return fullEntries[i]!.full
+      const description = getCommandDescription(cmd)
+      return `- ${cmd.name}: ${truncate(description, maxDescLen)}`
+    })
+    .join(&#x27;\n&#x27;)
+}
+</code></pre></details></figure>
+<p>全表按stringWidth算，单项描述却按字符串length截；再保留内置描述或非内置名称，会使总量无法在任何输入下严格满足。它安排的是发现顺序里的取舍，不是删除工具能力。完整加载协议见第7、9章（<code>tools/SkillTool/prompt.ts:173-196</code>、<code>tools/ToolSearchTool/prompt.ts:53-117</code>、<code>services/api/claude.ts:1207-1209</code>、<code>services/api/claude.ts:1231-1246</code>）。</p>
+<h2 id="section-6">工作最低要求与实际停止条件有张力</h2>
+<p>TOKEN_BUDGET要让任务继续，不是在余量低时压缩上下文。构建开关先决定tracker是否存在，随后才有主agent、目标和增长判断（E-41）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>query.ts:280-280</code><span>摘录 1 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L280-L280">核对原文</a></div><pre><code class="language-ts" data-block-id="14-budgets.md#015" data-quote-type="C" data-source-range="query.ts:280-280">  const budgetTracker = feature(&#x27;TOKEN_BUDGET&#x27;) ? createBudgetTracker() : null
+</code></pre></div></figure>
+<p>工具的后台预算或API参数不能自动创建这个tracker；这是当前查询循环的一条特性路径。其状态首先记录继续次数与前次增长，为停止决定提供历史，而不是只保留一个剩余数。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>query/tokenBudget.ts:3-19</code><span>摘录 2 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query/tokenBudget.ts#L3-L19">核对原文</a></div><pre><code class="language-ts" data-block-id="14-budgets.md#016" data-quote-type="C" data-source-range="query/tokenBudget.ts:3-19">const COMPLETION_THRESHOLD = 0.9
+const DIMINISHING_THRESHOLD = 500
+// … 省略 15 行（query/tokenBudget.ts:L5-L19）
+</code></pre></div></figure>
+<p>原文依据：<code>query/tokenBudget.ts:3-19</code>。</p>
+<p>九成阈值与低收益判断服务不同停止理由。前者接近目标时停止，后者允许尚未接近却连续增长很少时停；要判断一轮为何结束，得看两个条件与计数，不只看最终百分比。</p>
+<figure class="source-quote"><details class="source"><summary><code>query/tokenBudget.ts:45-93</code><span>摘录 19 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query/tokenBudget.ts#L45-L93">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#017" data-quote-type="C" data-source-range="query/tokenBudget.ts:45-93">// … 省略 6 行（query/tokenBudget.ts:L45-L50）
+  if (agentId || budget === null || budget &lt;= 0) {
+    return { action: &#x27;stop&#x27;, completionEvent: null }
+  }
+
+  const turnTokens = globalTurnTokens
+  const pct = Math.round((turnTokens / budget) * 100)
+  const deltaSinceLastCheck = globalTurnTokens - tracker.lastGlobalTurnTokens
+
+  const isDiminishing =
+    tracker.continuationCount &gt;= 3 &amp;&amp;
+    deltaSinceLastCheck &lt; DIMINISHING_THRESHOLD &amp;&amp;
+    tracker.lastDeltaTokens &lt; DIMINISHING_THRESHOLD
+
+  if (!isDiminishing &amp;&amp; turnTokens &lt; budget * COMPLETION_THRESHOLD) {
+    tracker.continuationCount++
+    tracker.lastDeltaTokens = deltaSinceLastCheck
+    tracker.lastGlobalTurnTokens = globalTurnTokens
+    return {
+      action: &#x27;continue&#x27;,
+// … 省略 24 行（query/tokenBudget.ts:L70-L93）
+</code></pre></details></figure>
+<p>原文依据：<code>query/tokenBudget.ts:45-93</code>。</p>
+<p>提示词称hard minimum，执行却可在九成或低收益时停。这是行为文字与实际循环条件的差别，两方都要保留。它也只推动主agent，不能从目标存在推断每个子agent都被自动续跑。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>utils/tokenBudget.ts:66-73</code><span>摘录 2 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/tokenBudget.ts#L66-L73">核对原文</a></div><pre><code class="language-ts" data-block-id="14-budgets.md#018" data-quote-type="P" data-source-range="utils/tokenBudget.ts:66-73">// … 省略 6 行（utils/tokenBudget.ts:L66-L71）
+  return `Stopped at ${pct}% of token target (${fmt(turnTokens)} / ${fmt(budget)}). Keep working \u2014 do not summarize.`
+}
+</code></pre></div></figure>
+<p>原文依据：<code>utils/tokenBudget.ts:66-73</code>。</p>
+<p>续跑消息把目标差距写给模型并要求不要总结；消息本身不执行新任务。还要看调用方是否把它接回历史并继续query，才能把“请继续”从文案接成宿主动作。</p>
+<figure class="source-quote"><details class="source"><summary><code>query.ts:1308-1339</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L1308-L1339">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#019" data-quote-type="C" data-source-range="query.ts:1308-1339">// … 省略 13 行（query.ts:L1308-L1320）
+          state = {
+            messages: [
+              ...messagesForQuery,
+              ...assistantMessages,
+              createUserMessage({
+                content: decision.nudgeMessage,
+                isMeta: true,
+              }),
+// … 省略 11 行（query.ts:L1329-L1339）
+</code></pre></details></figure>
+<p>原文依据：<code>query.ts:1308-1339</code>。</p>
+<p>isMeta消息由宿主追加，用户没有重新发送请求，原工作仍是继续对象。这条状态转换与模型自行选择工具分开：它能再开一轮，却不替模型找出有价值的下一步。输出词数要求也不是整轮额度，相关文字见第6章（<code>constants/prompts.ts:527-537</code>、<code>constants/prompts.ts:538-551</code>）。</p>
+<h2 id="section-7">API余额跨压缩保存另一种计数</h2>
+<p>API task_budget的remaining不能因本地compact腾出空间就回满。参数注释先把它与自动续跑区别，避免把两个控制面字段混用（E-42）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>query.ts:193-197</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L193-L197">核对原文</a></div><pre><code class="language-ts" data-block-id="14-budgets.md#020" data-quote-type="M" data-source-range="query.ts:193-197">  // API task_budget (output_config.task_budget, beta task-budgets-2026-03-13).
+  // Distinct from the tokenBudget +500k auto-continue feature. `total` is the
+  // budget for the whole agentic turn; `remaining` is computed per iteration
+  // from cumulative API usage. See configureTaskBudgetParams in claude.ts.
+  taskBudget?: { total: number }
+</code></pre></div></figure>
+<p>这份额度按agentic turn跨迭代计算，窗口压缩只改下一请求的材料。要保存之前消耗的判断基准，必须在替换数组之前取旧窗口，而不是拿新摘要大小扣余额。</p>
+<figure class="source-quote"><details class="source"><summary><code>query.ts:504-535</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L504-L535">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#021" data-quote-type="C" data-source-range="query.ts:504-535">// … 省略 4 行（query.ts:L504-L507）
+      if (params.taskBudget) {
+        const preCompactContext =
+          finalContextTokensFromLastResponse(messagesForQuery)
+        taskBudgetRemaining = Math.max(
+          0,
+          (taskBudgetRemaining ?? params.taskBudget.total) - preCompactContext,
+        )
+      }
+// … 省略 20 行（query.ts:L516-L535）
+</code></pre></details></figure>
+<p>原文依据：<code>query.ts:504-535</code>。</p>
+<p>扣的是压缩前最终响应窗口，下限归零；compact成功不抹掉这次扣减。这个时点与前面的工具结果尾部估算不同，还要检查finalContext函数为何不用同一usage总和。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/tokens.ts:68-112</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/tokens.ts#L68-L112">核对原文</a></summary><pre><code class="language-ts" data-block-id="14-budgets.md#022" data-quote-type="C" data-source-range="utils/tokens.ts:68-112">// … 省略 28 行（utils/tokens.ts:L68-L95）
+      if (iterations &amp;&amp; iterations.length &gt; 0) {
+        const last = iterations.at(-1)!
+        return last.input_tokens + last.output_tokens
+      }
+      // No iterations → no server tool loop → top-level usage IS the final
+      // window. Match the iterations path&#x27;s formula (input + output, no cache)
+      // rather than getTokenCountFromUsage — #304930 defines final window as
+      // non-cache input + output. Whether the server&#x27;s budget countdown
+      // (renderer.py:292 calculate_context_tokens) counts cache the same way
+      // is an open question; aligning with the iterations path keeps the two
+      // branches consistent until that&#x27;s resolved.
+      return usage.input_tokens + usage.output_tokens
+// … 省略 5 行（utils/tokens.ts:L108-L112）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/tokens.ts:68-112</code>。</p>
+<p>有iterations就取末项，没有则顶层input+output，两条都不加cache；它与本章开头窗口占用的含缓存算法不同。注释还承认服务端缓存口径是开放问题，不能把客户端一致的实现说成双方已核对。下一章沿这些不同基准，继续检查删除和恢复究竟改变了哪份材料。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="13-paths-and-sandbox.html"><span class="page-direction">&larr; 上一章</span><span>第 13 章 · 路径保护与沙箱执行</span></a>
+<a href="15-compaction.html"><span class="page-direction">&rarr; 下一章</span><span>第 15 章 · 压缩怎样删内容，又怎样让工作接着走</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

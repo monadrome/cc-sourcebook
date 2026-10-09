@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Code 控制面 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">阅读说明<span>阅读说明</span></p>
+    <h1>Claude Code 控制面</h1>
+  </header>
+  <div class="chapter-body"><h2 id="section-1">阅读约定</h2>
+<p>这本书从指定源码树解释模型收到什么指令、工具怎样描述调用流程、权限怎样判定，以及上下文怎样回收和保存。正文未标记的论述默认由附近的路径、行号与原文支持；【作者推断】明确标出源码没有直接说出的解释。源码注释里的原因、收益和实验记录会归属为“注释说的”，不当作本次实测结果。</p>
+<p>公开版保留承重短引和完整源码区间，英文、标点与保留行不改。省略标记给出缺省段的精确行号；只作存在性旁证的块改为原文指针。完整原文与钉版镜像见<a href="publication.html">出版说明</a>。五行以内直接展示，较长引文默认折叠。构建特性和远端开关的存在不证明它们在某个发行包中开启。</p>
+<h2 id="section-2">信源边界</h2>
+<p>唯一代码信源是 2026-03-31 sourcemap 事件的备份源码树。调研没有借用外部源码分析，没有运行这棵泄露源码、连模型 API 或复现注释中的实验。产品版本无法由构建宏 MACRO.VERSION 确定（<code>constants/system.ts:73-95</code>）。分类器缺失的文本模板、外部 sandbox-runtime 的内部实现和未展开的压缩实验分支不属于已经审过的实现。</p>
+<p>书中的文本要求、实际执行分支和服务端行为分别表述。读提示词时关注模型被要求做什么；读判定代码时关注哪个条件返回什么；服务端承诺仍按客户端注释或提示词的说法引用。各卷开头再说明该卷的证据边界，正文仅在具体歧义处提醒。</p>
+<h2 id="section-3">目录</h2>
+<p>目录按提示词装配、行为引导、工具协议、权限安全、上下文与记忆五卷排列，16章已经写齐。章节按论证顺序阅读；前后章与正文中的交叉链接使用本地 HTML，不需要联网。查具体名词可用<a href="glossary.html">术语索引</a>。</p>
+<h2 id="section-4">内部标识约定</h2>
+<p><code>USER_TYPE</code> 是内部用户分层环境变量，<code>&#x27;ant&#x27;</code> 为其内部取值之一（<code>constants/prompts.ts:204-213</code>）。引文原样保留，后文用内部用户等中性称呼；功能代号只用于描述代码门控，不据此推断发布计划或组织含义。</p><nav class="book-contents" aria-label="章节索引"><p id="chapter-1"><a href="01-prompt-assembly.html">第 1 章 · 模型收到的提示词从哪里来</a></p><p id="chapter-2"><a href="02-prompt-cache.html">第 2 章 · 分段缓存与会话生命周期</a></p><p id="chapter-3"><a href="03-instruction-files.html">第 3 章 · CLAUDE.md 的发现、导入与按路径加载</a></p><p id="chapter-4"><a href="04-prohibitions-and-authorization.html">第 4 章 · 禁止、替代动作与授权豁免</a></p><p id="chapter-5"><a href="05-completion.html">第 5 章 · 做到什么程度，何时算做完</a></p><p id="chapter-6"><a href="06-output-and-subtasks.html">第 6 章 · 给用户看的文字与子任务专用提示</a></p><p id="chapter-7"><a href="07-tool-contracts.html">第 7 章 · 工具接口、描述与发现协议</a></p><p id="chapter-8"><a href="08-file-shell.html">第 8 章 · 文件与 shell 工具怎样约束调用</a></p><p id="chapter-9"><a href="09-agent-workflows.html">第 9 章 · 委派、计划与任务协作的调用流程</a></p><p id="chapter-10"><a href="10-permission-pipeline.html">第 10 章 · 一次工具调用怎样得到 allow、deny 或 ask</a></p><p id="chapter-11"><a href="11-permission-modes.html">第 11 章 · 权限模式与分类器的边界</a></p><p id="chapter-12"><a href="12-hooks-and-confirmation.html">第 12 章 · hooks、确认与拒绝后的继续</a></p><p id="chapter-13"><a href="13-paths-and-sandbox.html">第 13 章 · 路径保护与沙箱执行</a></p><p id="chapter-14"><a href="14-budgets.html">第 14 章 · 窗口、字符与 token：几种预算各算什么</a></p><p id="chapter-15"><a href="15-compaction.html">第 15 章 · 压缩怎样删内容，又怎样让工作接着走</a></p><p id="chapter-16"><a href="16-memory.html">第 16 章 · 从当前会话笔记到跨会话记忆</a></p></nav></div>
+  <nav class="page-navigation" aria-label="章节翻页"><a href="01-prompt-assembly.html">从第 1 章开始阅读 &rarr;</a></nav>
+</article>
+</main>
+</body>
+</html>

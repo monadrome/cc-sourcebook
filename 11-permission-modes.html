@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 11 章 · 权限模式与分类器的边界 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html" aria-current="page"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+<ol class="section-list">
+<li><a href="#section-1">类型集合与可用性不是同一张表</a></li>
+<li><a href="#section-2">模式切换会改规则集合</a></li>
+<li><a href="#section-3">ask 的外层处理继续区分安全原因</a></li>
+<li><a href="#section-4">分类器没有照搬主对话</a></li>
+<li><a href="#section-5">失败结果也分几种</a></li>
+</ol>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html" aria-current="page"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+<ol class="section-list">
+<li><a href="#section-1">类型集合与可用性不是同一张表</a></li>
+<li><a href="#section-2">模式切换会改规则集合</a></li>
+<li><a href="#section-3">ask 的外层处理继续区分安全原因</a></li>
+<li><a href="#section-4">分类器没有照搬主对话</a></li>
+<li><a href="#section-5">失败结果也分几种</a></li>
+</ol>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">D · 权限与安全边界<span>第 11 章</span></p>
+    <h1>权限模式与分类器的边界</h1>
+  </header>
+  <div class="chapter-body"><p>第 10 章的内层判定留下 ask，这章看 <code>utils/permissions/permissions.ts:503-549</code> 怎样转换它，再追 <code>utils/permissions/permissionSetup.ts:597-646</code> 的模式状态与分类器输入。值得分开的至少有三件事：模式名字在类型中合法、当前会话可进入该模式、这次动作由分类器放行。前两者不会自动证明第三者。</p>
+<h2 id="section-1">类型集合与可用性不是同一张表</h2>
+<p>模式类型、可选集合和模板来源是不同判断。源码保留auto的外部模板分支，就不能将内部联合类型的名字解释成只供内部用户；当前运行时输入集合还由构建条件收窄（D-36）。</p>
+<figure class="source-quote"><details class="source"><summary><code>types/permissions.ts:16-36</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/types/permissions.ts#L16-L36">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#001" data-quote-type="C" data-source-range="types/permissions.ts:16-36">// … 省略 12 行（types/permissions.ts:L16-L27）
+export type InternalPermissionMode = ExternalPermissionMode | &#x27;auto&#x27; | &#x27;bubble&#x27;
+export type PermissionMode = InternalPermissionMode
+
+// Runtime validation set: modes that are user-addressable (settings.json
+// defaultMode, --permission-mode CLI flag, conversation recovery).
+export const INTERNAL_PERMISSION_MODES = [
+  ...EXTERNAL_PERMISSION_MODES,
+  ...(feature(&#x27;TRANSCRIPT_CLASSIFIER&#x27;) ? ([&#x27;auto&#x27;] as const) : ([] as const)),
+] as const satisfies readonly PermissionMode[]
+</code></pre></details></figure>
+<p>原文依据：<code>types/permissions.ts:16-36</code>。</p>
+<p>UI 轮换顺序另有实现，内部用户会跳过 acceptEdits 和 plan，dontAsk 不在普通轮换里（<code>utils/permissions/getNextPermissionMode.ts:38-78</code>）。类型允许的值、CLI/设置可选集合和交互轮换各回答不同问题。本书不展开 UI 颜色，只沿可用性和判定查安全条件，避免把界面上看见一项当成它的全部语义。</p>
+<p>联合类型只是静态穷举，运行时数组才决定可验证的输入。auto因此可以在类型里存在而在没有feature时被数组排除；“内部联合包含auto”本身不是用户可选的证据。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/yoloClassifier.ts:54-78</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/yoloClassifier.ts#L54-L78">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#002" data-quote-type="C" data-source-range="utils/permissions/yoloClassifier.ts:54-78">// … 省略 17 行（utils/permissions/yoloClassifier.ts:L54-L70）
+function isUsingExternalPermissions(): boolean {
+  if (process.env.USER_TYPE !== &#x27;ant&#x27;) return true
+  const config = getFeatureValue_CACHED_MAY_BE_STALE(
+    &#x27;tengu_auto_mode_config&#x27;,
+    {} as AutoModeConfig,
+  )
+  return config?.forceExternalPermissions === true
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/yoloClassifier.ts:54-78</code>。</p>
+<p>分类器模板的选择又按USER_TYPE和forceExternalPermissions分支，证明构建内同时保留外部与内部文字，但不替任何发行构建确认开放范围。模式名称、模板来源和gate应分别记录。</p>
+<p>auto 的配置 enabled 有 enabled、disabled、opt-in 三态，缺失默认 disabled，注释把 disabled 描述为事件响应断路器。它决定能否进入或显示 auto，当前分类器是否激活还另有状态（D-30）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissionSetup.ts:1303-1320</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissionSetup.ts#L1303-L1320">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#003" data-quote-type="C" data-source-range="utils/permissions/permissionSetup.ts:1303-1320">// … 省略 10 行（utils/permissions/permissionSetup.ts:L1303-L1312）
+const AUTO_MODE_ENABLED_DEFAULT: AutoModeEnabledState = &#x27;disabled&#x27;
+
+function parseAutoModeEnabledState(value: unknown): AutoModeEnabledState {
+  if (value === &#x27;enabled&#x27; || value === &#x27;disabled&#x27; || value === &#x27;opt-in&#x27;) {
+    return value
+  }
+  return AUTO_MODE_ENABLED_DEFAULT
+}
+</code></pre></details></figure>
+<p>bypass 可用性要求 CLI 模式或允许危险跳过的意图，并同时未被远端 gate 和 settings disable 禁用。CLI 初始化按候选顺序选择，被禁的 bypass 跳过后取下一个有效项；无结果才回 default。旧标题说总降级 default 过强，D-64 的完整循环保留了这个差别。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissionSetup.ts:930-943</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissionSetup.ts#L930-L943">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#004" data-quote-type="C" data-source-range="utils/permissions/permissionSetup.ts:930-943">// … 省略 9 行（utils/permissions/permissionSetup.ts:L930-L938）
+  const isBypassPermissionsModeAvailable =
+    (permissionMode === &#x27;bypassPermissions&#x27; ||
+      allowDangerouslySkipPermissions) &amp;&amp;
+    !growthBookDisableBypassPermissionsMode &amp;&amp;
+    !settingsDisableBypassPermissionsMode
+</code></pre></details></figure>
+<p>可用性布尔值把“有危险意图”与“组织/设置允许使用”合在一起；同样的bypass字符串若没有前一个意图，标志仍可能为false。它是进入模式的门，不是对已经在模式中的每次调用重新执行完整权限检查。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissionSetup.ts:720-800</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissionSetup.ts#L720-L800">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#005" data-quote-type="C" data-source-range="utils/permissions/permissionSetup.ts:720-800">// … 省略 69 行（utils/permissions/permissionSetup.ts:L720-L788）
+        notification = &#x27;Bypass permissions mode was disabled by settings&#x27;
+      }
+      continue // Skip this mode if it&#x27;s disabled
+    }
+
+    result = { mode, notification } // Use the first valid mode
+    break
+  }
+
+  if (!result) {
+    result = { mode: &#x27;default&#x27;, notification }
+  }
+</code></pre></details></figure>
+<p>循环跳过被禁候选后保留notification，并选择下一个有效模式，只有候选耗尽才default。这里的回退是一个有序选择器，不是单一的降级函数；使用CLI和settings同时提供候选时，顺序本身也会改变用户落入的模式。</p>
+<p>远程环境对 settings.defaultMode 另限 acceptEdits、plan、default，注释说明防止静默授予全权限。启动后的 bypass 检查一处会退出进程，另一处更新权限上下文；一次性标志和登录重置也有具体范围。不同入口的“禁用”不一定同样表现，不能只看 gate 名称就描述为统一回默认（<code>utils/permissions/permissionSetup.ts:743-759</code>、<code>utils/permissions/permissionSetup.ts:1407-1431</code>、<code>utils/permissions/permissionSetup.ts:1262-1267</code>、<code>utils/permissions/bypassPermissionsKillswitch.ts:49-73</code>）。</p>
+<h2 id="section-2">模式切换会改规则集合</h2>
+<p>切模式会改变规则集合与活动状态，不能仅写一个新mode。尤其plan可附带auto，进入和离开侧并非对称的字符串比较；注释要求用实际active状态判断离开，正为避免替代字段滞后（D-24）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissionSetup.ts:597-646</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissionSetup.ts#L597-L646">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#006" data-quote-type="C" data-source-range="utils/permissions/permissionSetup.ts:597-646">// … 省略 30 行（utils/permissions/permissionSetup.ts:L597-L626）
+    if (toUsesClassifier &amp;&amp; !fromUsesClassifier) {
+      if (!isAutoModeGateEnabled()) {
+        throw new Error(&#x27;Cannot transition to auto mode: gate is not enabled&#x27;)
+      }
+      autoModeStateModule?.setAutoModeActive(true)
+      context = stripDangerousPermissionsForAutoMode(context)
+    } else if (fromUsesClassifier &amp;&amp; !toUsesClassifier) {
+      autoModeStateModule?.setAutoModeActive(false)
+      setNeedsAutoModeExitAttachment(true)
+      context = restoreDangerousPermissions(context)
+    }
+// … 省略 9 行（utils/permissions/permissionSetup.ts:L638-L646）
+</code></pre></details></figure>
+<p>为什么要剥离宽泛解释器许可，危险模式列表的注释有直接理由：Bash(python:*) 等可运行任意代码，会在更早的 allow 处绕过分类器。跨平台清单含解释器、包运行器、shell 和 ssh。这里保护的是规则形状的过宽许可，不是说每次 python 或 npm run 调用都危险（D-55）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/dangerousPatterns.ts:1-42</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/dangerousPatterns.ts#L1-L42">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#007" data-quote-type="M" data-source-range="utils/permissions/dangerousPatterns.ts:1-42">// … 省略 1 行（utils/permissions/dangerousPatterns.ts:L1-L1）
+ * Pattern lists for dangerous shell-tool allow-rule prefixes.
+ *
+ * An allow rule like `Bash(python:*)` or `PowerShell(node:*)` lets the model
+ * run arbitrary code via that interpreter, bypassing the auto-mode classifier.
+ * These lists feed the isDangerous{Bash,PowerShell}Permission predicates in
+ * permissionSetup.ts, which strip such rules at auto-mode entry.
+// … 省略 35 行（utils/permissions/dangerousPatterns.ts:L8-L42）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/dangerousPatterns.ts:1-42</code>。</p>
+<p>plan 可以叠加 auto，但 transitionPlanAutoMode 明确排除 prePlanMode 为 bypass 的情况；这一分支与第 10 章 plan 的 bypass 可用性检查不同。前者决定中途是否激活 auto，后者决定内层结果是否按 bypass 短路。两处字段不能互换，模式名称相同也可能有不同附带状态（<code>utils/permissions/permissionSetup.ts:1502-1511</code>、<code>utils/permissions/permissions.ts:1262-1281</code>、<code>utils/permissions/permissionSetup.ts:930-943</code>）。</p>
+<p>gate 异步变化时，verifyAutoModeGateAccess 返回对新上下文执行的变换；源码注释解释，如果闭包拿旧模式，用户等待期间切换会被覆盖。真正处 auto 就恢复规则并回 default；plan 叠 auto 则保留 plan、关闭 auto 并调整 prePlanMode。这是模式状态和规则集合一起修正（D-61）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissionSetup.ts:1182-1225</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissionSetup.ts#L1182-L1225">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#008" data-quote-type="C" data-source-range="utils/permissions/permissionSetup.ts:1182-1225">// … 省略 35 行（utils/permissions/permissionSetup.ts:L1182-L1216）
+    // Plan with auto active: deactivate auto, restore permissions, defuse
+    // prePlanMode so ExitPlanMode goes to default.
+    autoModeStateModule?.setAutoModeActive(false)
+    setNeedsAutoModeExitAttachment(true)
+    return {
+      ...restoreDangerousPermissions(ctx),
+      prePlanMode: ctx.prePlanMode === &#x27;auto&#x27; ? &#x27;default&#x27; : ctx.prePlanMode,
+      isAutoModeAvailable: false,
+    }
+</code></pre></details></figure>
+<p>变换函数在应用时重读mode，避免异步gate请求完成后用旧上下文覆盖用户刚切换的模式。这里的“踢出”不只是写一个default字符串，还需恢复剥离规则、停auto状态、处理plan的prePlanMode；遗漏任一状态会让后续判定不再符合界面显示。</p>
+<h2 id="section-3">ask 的外层处理继续区分安全原因</h2>
+<p>dontAsk 把 ask 转 deny。auto 或激活 auto 的 plan 则先看 safetyCheck 是否 classifierApprovable；不可批准的检查保留交互，无提示环境拒绝。可批准的敏感文件检查继续进入分类器。故 bypass 不可绕过不等于所有模式必须弹窗，安全原因还有一个明确布尔字段（D-38）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:503-549</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L503-L549">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#009" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:503-549">  // Apply dontAsk mode transformation: convert &#x27;ask&#x27; to &#x27;deny&#x27;
+  // This is done at the end so it can&#x27;t be bypassed by early returns
+  if (result.behavior === &#x27;ask&#x27;) {
+    const appState = context.getAppState()
+
+    if (appState.toolPermissionContext.mode === &#x27;dontAsk&#x27;) {
+      return {
+        behavior: &#x27;deny&#x27;,
+// … 省略 39 行（utils/permissions/permissions.ts:L511-L549）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissions.ts:503-549</code>。</p>
+<p>工具自身要求交互的 ask 也不会被 auto 当普通分类候选直接处理。其他快速路径与分类器只作用于走到这里的结果；第 10 章更早返回的整工具 deny 或显式内容 ask 必须按各分支继续核对，不能把 auto 写成取代所有规则的一次模型判断。</p>
+<h2 id="section-4">分类器没有照搬主对话</h2>
+<p>分类器所见材料不是主对话的缩短副本，它选择保留原用户文字和工具输入，排除模型自己写的正文。这个选择决定谁的授权说法能成为分类依据，不能用assistant复述替代用户原话（D-51）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/yoloClassifier.ts:297-360</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/yoloClassifier.ts#L297-L360">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#010" data-quote-type="C" data-source-range="utils/permissions/yoloClassifier.ts:297-360">// … 省略 44 行（utils/permissions/yoloClassifier.ts:L297-L340）
+    } else if (msg.type === &#x27;assistant&#x27;) {
+      const blocks: TranscriptBlock[] = []
+      for (const block of msg.message.content) {
+        // Only include tool_use blocks — assistant text is model-authored
+        // and could be crafted to influence the classifier&#x27;s decision.
+        if (block.type === &#x27;tool_use&#x27;) {
+          blocks.push({
+            type: &#x27;tool_use&#x27;,
+            name: block.name,
+            input: block.input,
+// … 省略 10 行（utils/permissions/yoloClassifier.ts:L351-L360）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/yoloClassifier.ts:297-360</code>。</p>
+<p>这条投影限制有具体安全意图，来自注释。分类器确实看到的内容由过滤与工具输入编码决定，不能用模型自己在回复里说“用户已批准”代替原用户文本。下一次 API 错误提到转录过长时，也要按这份投影的大小和模型窗口查，而不直接拿主上下文占用替代。</p>
+<p>模板通过构建 require 三个 .txt 文件，本树缺对应目录。装配函数仍可读：external 模板中用户段替换默认，内部模板把默认留在标签之外，用户段追加；allow、soft_deny、environment 分别替换标记。这里只能分析装配语义，不补造模板里的安全规则（D-52）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/yoloClassifier.ts:46-69</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/yoloClassifier.ts#L46-L69">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#011" data-quote-type="C" data-source-range="utils/permissions/yoloClassifier.ts:46-69">// Dead code elimination: conditional imports for auto mode classifier prompts.
+// At build time, the bundler inlines .txt files as string literals. At test
+// time, require() returns {default: string} — txtRequire normalizes both.
+/* eslint-disable custom-rules/no-process-env-top-level, @typescript-eslint/no-require-imports */
+function txtRequire(mod: string | { default: string }): string {
+  return typeof mod === &#x27;string&#x27; ? mod : mod.default
+}
+
+const BASE_PROMPT: string = feature(&#x27;TRANSCRIPT_CLASSIFIER&#x27;)
+  ? txtRequire(require(&#x27;./yolo-classifier-prompts/auto_mode_system_prompt.txt&#x27;))
+// … 省略 14 行（utils/permissions/yoloClassifier.ts:L56-L69）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/yoloClassifier.ts:46-69</code>。</p>
+<p>require被feature包住，所以缺失模板限制的是我们审查模板正文的能力，不让装配代码的条件消失。后面的replace仍能说明用户配置是覆盖还是追加，但不能补出默认规则的具体文字。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/yoloClassifier.ts:480-525</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/yoloClassifier.ts#L480-L525">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#012" data-quote-type="M" data-source-range="utils/permissions/yoloClassifier.ts:480-525">// … 省略 31 行（utils/permissions/yoloClassifier.ts:L480-L510）
+  // All three sections use the same &lt;foo_to_replace&gt;...&lt;/foo_to_replace&gt;
+  // delimiter pattern. The external template wraps its defaults inside the
+  // tags, so user-provided values REPLACE the defaults entirely. The
+  // anthropic template keeps its defaults outside the tags and uses an empty
+  // tag pair at the end of each section, so user-provided values are
+  // strictly ADDITIVE.
+// … 省略 9 行（utils/permissions/yoloClassifier.ts:L517-L525）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/yoloClassifier.ts:480-525</code>。</p>
+<p>external替换与内部追加由模板标签位置造成，而非allow字段名字本身决定。用户写相同配置，在两种模板上可能保留不同的默认规则；这里应据装配注释限定语义，不能将“用户可配置”理解为任何环境都彻底替换默认。</p>
+<h2 id="section-5">失败结果也分几种</h2>
+<p>响应 schema 解析失败返回 shouldBlock:true。外层遇到转录超窗，有交互则回确认，无头抛 AbortError；API 不可用又查 tengu_iron_gate_closed，默认 true 时拒绝并给重试指导，另一分支返回原结果。注释称 fail open，但返回的是此前 ask 等权限判定，绝非直接 allow（D-53）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>utils/permissions/yoloClassifier.ts:1215-1236</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/yoloClassifier.ts#L1215-L1236">核对原文</a></div><pre><code class="language-ts" data-block-id="11-permission-modes.md#013" data-quote-type="C" data-source-range="utils/permissions/yoloClassifier.ts:1215-1236">// … 省略 12 行（utils/permissions/yoloClassifier.ts:L1215-L1226）
+      return {
+        shouldBlock: true,
+        reason: &#x27;Invalid classifier response - blocking for safety&#x27;,
+// … 省略 7 行（utils/permissions/yoloClassifier.ts:L1230-L1236）
+</code></pre></div></figure>
+<p>原文依据：<code>utils/permissions/yoloClassifier.ts:1215-1236</code>。</p>
+<p>schema错误先变成shouldBlock，说明解析失败不会被当作一个无意见结果。这个内部分类结果还要到权限外层解释，才能决定是拒绝、人工确认还是保留原判定。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:818-877</code><span>摘录 13 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L818-L877">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#014" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:818-877">// … 省略 27 行（utils/permissions/permissions.ts:L818-L844）
+        if (classifierResult.unavailable) {
+          if (
+            getFeatureValue_CACHED_WITH_REFRESH(
+              &#x27;tengu_iron_gate_closed&#x27;,
+              true,
+// … 省略 20 行（utils/permissions/permissions.ts:L850-L869）
+          // Fail open: fall back to normal permission handling
+          logForDebugging(
+            &#x27;Auto mode classifier unavailable, falling back to normal permission handling (fail open)&#x27;,
+            { level: &#x27;warn&#x27; },
+          )
+          return result
+        }
+
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissions.ts:818-877</code>。</p>
+<p>transcriptTooLong是确定性材料问题，交互回确认、无头中止；unavailable又受fail-closed gate影响。返回result的fail open仍是原来的ask等判定，不能跳过用户选择。错误类型而非一个“分类器失败”总标签决定后果。</p>
+<p>拒绝次数另有约束：连续三次或总二十次进入回退，成功清连续计数；有头环境把控制交回提示，无头中止。这里不会因模型继续尝试就永远产生新分类请求，实际计数与中止条件独立于拒绝消息中的“请停下”要求（D-54）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/denialTracking.ts:7-45</code><span>摘录 14 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/denialTracking.ts#L7-L45">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#015" data-quote-type="C" data-source-range="utils/permissions/denialTracking.ts:7-45">// … 省略 25 行（utils/permissions/denialTracking.ts:L7-L31）
+export function recordSuccess(state: DenialTrackingState): DenialTrackingState {
+  if (state.consecutiveDenials === 0) return state // No change needed
+  return {
+    ...state,
+    consecutiveDenials: 0,
+  }
+}
+
+export function shouldFallbackToPrompting(state: DenialTrackingState): boolean {
+  return (
+    state.consecutiveDenials &gt;= DENIAL_LIMITS.maxConsecutive ||
+    state.totalDenials &gt;= DENIAL_LIMITS.maxTotal
+  )
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/denialTracking.ts:7-45</code>。</p>
+<p>连续和总拒绝分别追短期卡住与会话累积，成功只清连续；一两次成功不能将总次数抹掉。达到任一阈值时，后面的处理还要看是否有提示能力。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:995-1029</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L995-L1029">核对原文</a></summary><pre><code class="language-ts" data-block-id="11-permission-modes.md#016" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:995-1029">// … 省略 28 行（utils/permissions/permissions.ts:L995-L1022）
+  if (isHeadless) {
+    throw new AbortError(
+      &#x27;Agent aborted: too many classifier denials in headless mode&#x27;,
+    )
+  }
+// … 省略 2 行（utils/permissions/permissions.ts:L1028-L1029）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissions.ts:995-1029</code>。</p>
+<p>有头路径让用户检查转录，无头只能中止；这两种后果与同一个计数条件配对。计数不是对模型意图的判罪，只是避免持续拒绝仍无穷重试的执行约束。</p>
+<p>这一章得到的模式语义，是规则集合、active 状态、可用性 gate、转录过滤与失败回退共同组成的行为。接下来还需处理一个 ask 的现实去向：谁能给用户看，谁能替输入，几个异步批准谁先结算。<a href="12-hooks-and-confirmation.html">第 12 章</a>从这些交互事件继续。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="10-permission-pipeline.html"><span class="page-direction">&larr; 上一章</span><span>第 10 章 · 一次工具调用怎样得到 allow、deny 或 ask</span></a>
+<a href="12-hooks-and-confirmation.html"><span class="page-direction">&rarr; 下一章</span><span>第 12 章 · hooks、确认与拒绝后的继续</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

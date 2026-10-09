@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 3 章 · CLAUDE.md 的发现、导入与按路径加载 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html" aria-current="page"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+<ol class="section-list">
+<li><a href="#section-1">覆盖声明是一段包装文字</a></li>
+<li><a href="#section-2">先读来源，再走目录</a></li>
+<li><a href="#section-3">文本先处理，导入再递归</a></li>
+<li><a href="#section-4">条件规则要等到目标路径</a></li>
+<li><a href="#section-5">同一个路径有几种去重含义</a></li>
+<li><a href="#section-6">从文件读取到附件</a></li>
+</ol>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html" aria-current="page"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+<ol class="section-list">
+<li><a href="#section-1">覆盖声明是一段包装文字</a></li>
+<li><a href="#section-2">先读来源，再走目录</a></li>
+<li><a href="#section-3">文本先处理，导入再递归</a></li>
+<li><a href="#section-4">条件规则要等到目标路径</a></li>
+<li><a href="#section-5">同一个路径有几种去重含义</a></li>
+<li><a href="#section-6">从文件读取到附件</a></li>
+</ol>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">A · 系统提示词装配<span>第 03 章</span></p>
+    <h1>CLAUDE.md 的发现、导入与按路径加载</h1>
+  </header>
+  <div class="chapter-body"><p>指令文件不是读一个当前目录里的 CLAUDE.md 就结束。主入口 <code>utils/claudemd.ts:790-847</code> 先装托管与用户材料，再遍历祖先目录；<code>utils/attachments.ts:1777-1862</code> 还在目标文件被访问后加载条件规则。本章沿这两条路径看文件如何进入上下文。它们值得连着读：漏掉延迟加载，就会误认为初始提示词已经包含项目的全部约束。</p>
+<h2 id="section-1">覆盖声明是一段包装文字</h2>
+<p>getClaudeMds 为每个条目加来源路径与用途说明，trim 内容后按输入顺序连接；没有条目则返回空串。前导 MEMORY_INSTRUCTION_PROMPT 要求遵循下面的指令，并声称覆盖任何默认行为。它是模型收到的要求，没有在这个函数里逐句解析用户规则，再算出“默认句子被哪一条替换”（A-23）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>utils/claudemd.ts:89-92</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L89-L92">核对原文</a></div><pre><code class="language-ts" data-block-id="03-instruction-files.md#001" data-quote-type="P" data-source-range="utils/claudemd.ts:89-92">const MEMORY_INSTRUCTION_PROMPT =
+  &#x27;Codebase and user instructions are shown below. Be sure to adhere to these instructions. IMPORTANT: These instructions OVERRIDE any default behavior and you MUST follow them exactly as written.&#x27;
+// Recommended max character count for a memory file
+export const MAX_MEMORY_CHARACTER_COUNT = 40000
+</code></pre></div></figure>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:1153-1195</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L1153-L1195">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#002" data-quote-type="P" data-source-range="utils/claudemd.ts:1153-1195">// … 省略 26 行（utils/claudemd.ts:L1153-L1178）
+      const content = file.content.trim()
+      if (feature(&#x27;TEAMMEM&#x27;) &amp;&amp; file.type === &#x27;TeamMem&#x27;) {
+        memories.push(
+          `Contents of ${file.path}${description}:\n\n&lt;team-memory-content source=&quot;shared&quot;&gt;\n${content}\n&lt;/team-memory-content&gt;`,
+        )
+      } else {
+        memories.push(`Contents of ${file.path}${description}:\n\n${content}`)
+      }
+// … 省略 9 行（utils/claudemd.ts:L1187-L1195）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/claudemd.ts:1153-1195</code>。</p>
+<p>包装保留了来源差别：Project 是签入项目的说明，Local 是私人项目说明，User 是跨项目私人说明，AutoMem 和 TeamMem 则属记忆材料；团队文本还单独包 XML。都进入同一个 memory 文件集合，不等于用途相同。持久记忆的类型与检索留到<a href="16-memory.html">第 16 章</a>，这里关注人工指令文件的加载。</p>
+<p>在进入这个包装前，getUserContext 还检查硬关闭与 bare。硬关闭变量始终关 CLAUDE.md；bare 模式仅在没有显式额外目录时关闭发现。它再调用 filterInjectedMemoryFiles，最后缓存生成的文本给分类器。文件存在、被发现和实际注入因此不是等价状态（<code>context.ts:152-189</code>）；实验过滤也可能让发现结果不进入当前上下文。</p>
+<h2 id="section-2">先读来源，再走目录</h2>
+<p>getMemoryFiles 起始准备 result 和 processedPaths，并从项目配置取得外部导入是否批准。Managed 文件总是先处理，随后的托管 rules 只取无条件项。User 则要 userSettings 来源启用；但一旦进入 User 路径，外部导入参数固定为 true。不同来源的导入范围就在调用参数上区分（A-24）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:790-847</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L790-L847">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#003" data-quote-type="C" data-source-range="utils/claudemd.ts:790-847">// … 省略 36 行（utils/claudemd.ts:L790-L825）
+    if (isSettingSourceEnabled(&#x27;userSettings&#x27;)) {
+      const userClaudeMd = getMemoryPath(&#x27;User&#x27;)
+      result.push(
+        ...(await processMemoryFile(
+          userClaudeMd,
+          &#x27;User&#x27;,
+          processedPaths,
+          true, // User memory can always include external files
+        )),
+// … 省略 13 行（utils/claudemd.ts:L835-L847）
+</code></pre></details></figure>
+<p>（原文见 utils/config.ts:1779-1807，共 29 行，略）</p>
+<p>原文依据：<code>utils/config.ts:1779-1807</code>。</p>
+<p>这条参数差异不能简写成“所有指令文件都可以导入项目外文件”。Managed、Project、Local 使用 includeExternal 的审批结果，User 的两次调用明确允许外部导入。读取来源设置与导入文件位置也不是同一个检查：来源可以已启用，却仍在递归处理时跳过外部路径。后面看到 processMemoryFile 才能把两者接起来。</p>
+<p>项目和本地文件从 originalCwd 向上收集目录，循环不包含文件系统根目录自身，然后 reverse 从祖先走回 CWD。每一层先处理 Project 的 CLAUDE.md、.claude/CLAUDE.md、无条件 rules，再处理 Local。它没有先读完所有目录的项目文件，最后才统一读本地文件；相邻两个目录的顺序需要按循环理解（A-25、A-26）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:849-885</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L849-L885">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#005" data-quote-type="C" data-source-range="utils/claudemd.ts:849-885">// … 省略 28 行（utils/claudemd.ts:L849-L876）
+    // Process from root downward to CWD
+    for (const dir of dirs.reverse()) {
+      // In a nested worktree, skip checked-in files from the main repo&#x27;s
+      // working tree (dirs inside canonicalRoot but outside the worktree).
+      const skipProject =
+        isNestedWorktree &amp;&amp;
+        pathInWorkingPath(dir, canonicalRoot) &amp;&amp;
+        !pathInWorkingPath(dir, gitRoot)
+// … 省略 1 行（utils/claudemd.ts:L885-L885）
+</code></pre></details></figure>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:886-934</code><span>摘录 19 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L886-L934">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#006" data-quote-type="C" data-source-range="utils/claudemd.ts:886-934">      // Try reading CLAUDE.md (Project) - only if projectSettings is enabled
+      if (isSettingSourceEnabled(&#x27;projectSettings&#x27;) &amp;&amp; !skipProject) {
+        const projectPath = join(dir, &#x27;CLAUDE.md&#x27;)
+        result.push(
+          ...(await processMemoryFile(
+            projectPath,
+// … 省略 30 行（utils/claudemd.ts:L892-L921）
+      // Try reading CLAUDE.local.md (Local) - only if localSettings is enabled
+      if (isSettingSourceEnabled(&#x27;localSettings&#x27;)) {
+        const localPath = join(dir, &#x27;CLAUDE.local.md&#x27;)
+        result.push(
+          ...(await processMemoryFile(
+            localPath,
+            &#x27;Local&#x27;,
+            processedPaths,
+            includeExternal,
+          )),
+        )
+      }
+    }
+</code></pre></details></figure>
+<p>文件头注释把后加载称为更高优先级，还说模型更注意后文；这是注释的行为主张。数组操作能确认加载顺序，不能独立复算模型对位置的注意程度。尤其是相邻目录混着 Project 与 Local 时，只背“managed、user、project、local”四级名称，会漏掉实际逐目录交错的顺序（<code>utils/claudemd.ts:1-26</code>）。</p>
+<p>嵌套 worktree 另有 skipProject。向上走会经过 worktree 和主仓库，两份签入文件可能重复，所以代码检测 canonical root 与实际 git root，跳过主仓库范围内但不在 worktree 中的项目文件。本地文件不受 skipProject 控制；注释说它被 gitignore，可能只在主仓库存在。这是避免重复加载的特殊路径，不是关闭祖先遍历。</p>
+<p>额外目录还要环境变量 CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD。该分支读取目录内两种 CLAUDE.md 和无条件 rules，但没有再查 projectSettings 来源开关。旁注释用显式 add-dir 以及 SDK 默认 settingSources 解释这个选择。bare 对显式输入的保留与这里的门控须同时核对，不能只看一个开关猜结果（A-27）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:936-977</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L936-L977">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#007" data-quote-type="M" data-source-range="utils/claudemd.ts:936-977">    // Process CLAUDE.md from additional directories (--add-dir) if env var is enabled
+    // This is controlled by CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD and defaults to off
+    // Note: we don&#x27;t check isSettingSourceEnabled(&#x27;projectSettings&#x27;) here because --add-dir
+    // is an explicit user action and the SDK defaults settingSources to [] when not specified
+    if (isEnvTruthy(process.env.CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD)) {
+// … 省略 37 行（utils/claudemd.ts:L941-L977）
+</code></pre></details></figure>
+<h2 id="section-3">文本先处理，导入再递归</h2>
+<p>读取文件后会去 frontmatter，借 Markdown lexer 去掉正文块注释并提取导入路径。代码块和行内代码里的注释保留，未闭合注释也保留；允许的文本扩展名之外的导入被拒。若上下文内容与磁盘不同，保存 rawContent 和 contentDiffersFromDisk，供后续读取状态使用（A-29）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:281-301</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L281-L301">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#008" data-quote-type="M" data-source-range="utils/claudemd.ts:281-301">// … 省略 3 行（utils/claudemd.ts:L281-L283）
+ * Uses the marked lexer to identify comments at the block level only, so
+ * comments inside inline code spans and fenced code blocks are preserved.
+ * Inline HTML comments inside a paragraph are also left intact; the intended
+ * use case is authorial notes that occupy their own lines.
+ *
+ * Unclosed comments (`&lt;!--` with no matching `--&gt;`) are left in place so a
+ * typo doesn&#x27;t silently swallow the rest of the file.
+// … 省略 11 行（utils/claudemd.ts:L291-L301）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/claudemd.ts:281-301</code>。</p>
+<p><span class="claim-label inference">作者推断</span>这条双版本记录不宜只当作文档元数据。模型得到的是清理后的指令，文件工具后来编辑却要对磁盘原文匹配。若把整理后的内容冒充完整磁盘读取，old_string 可能对应不存在的片段，或丢失被过滤的部分。这个风险判断由附件逻辑选择 rawContent 并标部分视图的做法支持（<code>utils/attachments.ts:1709-1775</code>）。</p>
+<p>导入解析只在文本节点找行首或空白后的 @ 路径，去片段标识、解转义空格，再按包含文件所在目录解析相对路径并去重。code 与 codespan 被跳过，列表和子 token 则递归。一个示例代码中的 @ 字符不应因表面格式相同就触发文件读取；文本节点边界是解析约束的一部分（A-30）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:448-535</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L448-L535">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#009" data-quote-type="C" data-source-range="utils/claudemd.ts:448-535">// … 省略 45 行（utils/claudemd.ts:L448-L492）
+  // Recursively process elements to find text nodes
+  function processElements(elements: MarkdownToken[]) {
+    for (const element of elements) {
+      if (element.type === &#x27;code&#x27; || element.type === &#x27;codespan&#x27;) {
+        continue
+      }
+// … 省略 37 行（utils/claudemd.ts:L499-L535）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/claudemd.ts:448-535</code>。</p>
+<p>processMemoryFile 在路径已处理或 depth 达到 5 时返回空数组；符号链接目标也加入 processedPaths。它先 push 主文件，再处理导入并 append 子条目；外部路径且未批准时跳过。函数前注释却写 includes first，文件头也说导入在包含文件之前。必须把这两种说法并列，正文按数组操作说明当前实现（A-31）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>utils/claudemd.ts:537-537</code><span>摘录 1 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L537-L537">核对原文</a></div><pre><code class="language-ts" data-block-id="03-instruction-files.md#010" data-quote-type="C" data-source-range="utils/claudemd.ts:537-537">const MAX_INCLUDE_DEPTH = 5
+</code></pre></div></figure>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:614-685</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L614-L685">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#011" data-quote-type="C" data-source-range="utils/claudemd.ts:614-685">/**
+ * Recursively processes a memory file and all its @include references
+ * Returns an array of MemoryFileInfo objects with includes first, then main file
+// … 省略 46 行（utils/claudemd.ts:L617-L662）
+  // Add the main file first (parent before children)
+  result.push(memoryFile)
+
+// … 省略 16 行（utils/claudemd.ts:L666-L681）
+  }
+
+  return result
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/claudemd.ts:614-685</code>。</p>
+<p>这个差异直接影响我们画加载顺序，不能留成不痛不痒的“注释可能过时”。当前代码是父在前、子在后，下一层递归仍用同一规则；processedPaths 又让重复或环路停止。至于原作者曾想让哪个文件获得更高文本优先级，需要历史证据才能回答。本树里的冲突不足以替作者解释原因，故到数组操作为止。</p>
+<p>claudeMdExcludes 也限定来源。Managed、AutoMem、TeamMem 直接不排除，User、Project、Local 才查配置；Windows 分隔符会规范化，绝对模式另扩真实路径后匹配。processMemoryFile 在读取前检查排除结果，因此它影响的是发现链里的实际条目，而非最后包装时删某几句话（A-32）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:539-573</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L539-L573">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#012" data-quote-type="C" data-source-range="utils/claudemd.ts:539-573">// … 省略 4 行（utils/claudemd.ts:L539-L542）
+ *
+ * Matches both the original path and the realpath-resolved path to handle symlinks
+ * (e.g., /tmp -&gt; /private/tmp on macOS).
+ */
+function isClaudeMdExcluded(filePath: string, type: MemoryType): boolean {
+  if (type !== &#x27;User&#x27; &amp;&amp; type !== &#x27;Project&#x27; &amp;&amp; type !== &#x27;Local&#x27;) {
+    return false
+  }
+// … 省略 23 行（utils/claudemd.ts:L551-L573）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/claudemd.ts:539-573</code>。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:626-637</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L626-L637">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#013" data-quote-type="C" data-source-range="utils/claudemd.ts:626-637">// … 省略 3 行（utils/claudemd.ts:L626-L628）
+  const normalizedPath = normalizePathForComparison(filePath)
+  if (processedPaths.has(normalizedPath) || depth &gt;= MAX_INCLUDE_DEPTH) {
+    return []
+  }
+
+  // Skip if path is excluded by claudeMdExcludes setting
+  if (isClaudeMdExcluded(filePath, type)) {
+    return []
+  }
+</code></pre></details></figure>
+<p>原文依据：<code>utils/claudemd.ts:626-637</code>。</p>
+<h2 id="section-4">条件规则要等到目标路径</h2>
+<p>frontmatter 的 paths 被拆成模式；末尾 /<strong> 被去掉，以适应 ignore 库的目录匹配。空集合或全部 </strong> 视作无条件。扫描 rules 目录会递归处理子目录与符号链接，再按条目是否有 globs 分出条件和无条件两组。frontmatter 是加载条件，去掉后不会作为普通正文指令发出（A-28）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:249-279</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L249-L279">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#014" data-quote-type="C" data-source-range="utils/claudemd.ts:249-279">// … 省略 15 行（utils/claudemd.ts:L249-L263）
+  const patterns = splitPathInFrontmatter(frontmatter.paths)
+    .map(pattern =&gt; {
+      // Remove /** suffix - ignore library treats &#x27;path&#x27; as matching both
+      // the path itself and everything inside it
+      return pattern.endsWith(&#x27;/**&#x27;) ? pattern.slice(0, -3) : pattern
+    })
+    .filter((p: string) =&gt; p.length &gt; 0)
+
+  // If all patterns are ** (match-all), treat as no globs (undefined)
+  // This means the file applies to all paths
+  if (patterns.length === 0 || patterns.every((p: string) =&gt; p === &#x27;**&#x27;)) {
+    return { content }
+// … 省略 4 行（utils/claudemd.ts:L276-L279）
+</code></pre></details></figure>
+<p>真正匹配时，Project 以所属 .claude 的上一级目录为基准；Managed/User 以 originalCwd 为基准。目标转为相对路径，空路径、.. 逃出基准和绝对路径全部返回 false，剩余调用 ignore 匹配。不是任意一份 paths 模式都对同一字符串判断；来源决定坐标原点，跨驱动器等结果也要先挡住（A-33）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:1344-1397</code><span>摘录 14 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L1344-L1397">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#015" data-quote-type="C" data-source-range="utils/claudemd.ts:1344-1397">// … 省略 33 行（utils/claudemd.ts:L1344-L1376）
+    const baseDir =
+      type === &#x27;Project&#x27;
+        ? dirname(dirname(rulesDir)) // Parent of .claude
+        : getOriginalCwd() // Project root for managed/user rules
+// … 省略 7 行（utils/claudemd.ts:L1381-L1387）
+    if (
+      !relativePath ||
+      relativePath.startsWith(&#x27;..&#x27;) ||
+      isAbsolute(relativePath)
+    ) {
+      return false
+    }
+    return ignore().add(file.globs).ignores(relativePath)
+  })
+}
+</code></pre></details></figure>
+<p>延迟加载入口先检查目标在允许工作路径中，随后装 Managed/User 条件规则，再走 CWD 到目标的嵌套目录，最后补根方向到 CWD 的条件规则。前两类无条件指令已在初始加载里出现，最后一段就只取条件项。注释明确要求保留这个顺序；过滤项目/本地条目的实验开关还在这里再检查（A-34）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/attachments.ts:1777-1862</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/attachments.ts#L1777-L1862">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#016" data-quote-type="M" data-source-range="utils/attachments.ts:1777-1862">// … 省略 5 行（utils/attachments.ts:L1777-L1781）
+ * Processing order (must be preserved):
+ * 1. Managed/User conditional rules matching targetPath
+ * 2. Nested directories (CWD → target): CLAUDE.md + unconditional + conditional rules
+ * 3. CWD-level directories (root → CWD): conditional rules only
+// … 省略 77 行（utils/attachments.ts:L1786-L1862）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/attachments.ts:1777-1862</code>。</p>
+<p>嵌套目录的无条件扫描和条件扫描使用分开的去重集合，防止前一次处理路径后让后一次匹配被跳过。这里的问题不是“规则文件能否读到”，而是同一文件已经被解析却尚未满足本次目标条件。若让去重同时承担两种含义，就会把未注入的候选误算为已消费（<code>utils/claudemd.ts:1240-1318</code>）。</p>
+<h2 id="section-5">同一个路径有几种去重含义</h2>
+<p>扫描目录用 visitedDirs 防止递归重复，解析文件用 processedPaths 防止重复导入，已注入上下文用 loadedNestedMemoryPaths 保持会话内记录。三者都像集合，但对象不同：目录、已处理文件和已发送的指令。发生某个条目“没有再出现”时，应先找是哪一层做了返回，不能只看一个 has(path) 就把它叫已经加载（<code>utils/claudemd.ts:697-778</code>、<code>utils/claudemd.ts:614-685</code>、<code>utils/attachments.ts:1709-1775</code>）。</p>
+<p>规则扫描对普通目录项使用 Dirent 方法，符号链接才额外 stat；目录会继续递归，只有文件且扩展名 .md 才处理。不存在、不能访问或不是目录的 rules 路径返回空集合，其他错误仍抛出。空结果可能代表来源下没有规则目录，也可能代表本次无法读取；判断模型没收到规则时，要把扫描结果与调用来源一起查（<code>utils/claudemd.ts:697-778</code>）。</p>
+<p>处理后的指令怎样关联文件工具读取状态，已在前一节的双版本记录说明；具体部分视图拒绝交给<a href="08-file-shell.html">第 8 章</a>。这里仅跟踪附件使用的缓存对象，避免把注入记录和读取记录归成同一个去重集合（<code>utils/attachments.ts:1709-1775</code>）。</p>
+<p>加载原因也不能混着记。带 globs 的文件用 path_glob_match，含 parent 的导入用 include，其他嵌套条目用 nested_traversal；这些原因由具体条目形态选出。它们记录的不是模型决定“这句更重要”，而是宿主在什么条件下把材料放进上下文。同一文件路径的出现，至少还要附着来源类型、内容是否处理以及本次触发目标，才能重现加载事件（<code>utils/attachments.ts:1709-1775</code>）。</p>
+<p>初始文件计算又被 memoize。clearMemoryFileCaches 与 resetGetMemoryFilesCache 的区别已经在第 2 章解释，本章只保留落点：前者改变下一次能否复用结果，后者还准备新的 InstructionsLoaded。文件遍历顺序不会因为这个重载原因自动反转，条件规则也不会因 reset 就全改成无条件。缓存事件与发现算法是相接的两层，需按函数参数核对（<code>utils/claudemd.ts:1042-1086</code>、<code>utils/claudemd.ts:1088-1130</code>）。</p>
+<h2 id="section-6">从文件读取到附件</h2>
+<p>FileReadTool 普通文本路径把 fullFilePath 加到 nestedMemoryAttachmentTriggers；附件生成函数逐目标消费集合并清空，IDE 打开文件也有直接触发路径。它不是每轮扫描整个项目树，工具读取产生的目标告诉加载器本轮该查哪片目录（A-36）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileReadTool/FileReadTool.ts:1019-1044</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileReadTool/FileReadTool.ts#L1019-L1044">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#017" data-quote-type="C" data-source-range="tools/FileReadTool/FileReadTool.ts:1019-1044">// … 省略 13 行（tools/FileReadTool/FileReadTool.ts:L1019-L1031）
+  readFileState.set(fullFilePath, {
+    content,
+    timestamp: Math.floor(mtimeMs),
+    offset,
+    limit,
+  })
+  context.nestedMemoryAttachmentTriggers?.add(fullFilePath)
+// … 省略 6 行（tools/FileReadTool/FileReadTool.ts:L1039-L1044）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileReadTool/FileReadTool.ts:1019-1044</code>。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/attachments.ts:2163-2194</code><span>摘录 13 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/attachments.ts#L2163-L2194">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#018" data-quote-type="C" data-source-range="utils/attachments.ts:2163-2194">// … 省略 19 行（utils/attachments.ts:L2163-L2181）
+  for (const filePath of toolUseContext.nestedMemoryAttachmentTriggers) {
+    const nestedAttachments = await getNestedMemoryAttachmentsForFile(
+      filePath,
+      toolUseContext,
+      appState,
+    )
+    attachments.push(...nestedAttachments)
+  }
+
+  toolUseContext.nestedMemoryAttachmentTriggers.clear()
+
+  return attachments
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/attachments.ts:2163-2194</code>。</p>
+<p>（原文见 utils/attachments.ts:1864-1892，共 29 行，略）</p>
+<p>原文依据：<code>utils/attachments.ts:1864-1892</code>。</p>
+<p>memoryFilesToAttachments 先查 loadedNestedMemoryPaths，再查 readFileState，生成 nested_memory。注释解释，读取状态是 100 项 LRU，条目会淘汰，所以不能单靠它保证指令只注入一次。转换后的磁盘内容保留为 rawContent，读取状态带 isPartialView；InstructionsLoaded 原因区分路径匹配、导入与嵌套遍历。附件最后成为带来源的 meta 用户消息（A-35）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/attachments.ts:1709-1775</code><span>摘录 13 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/attachments.ts#L1709-L1775">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#020" data-quote-type="C" data-source-range="utils/attachments.ts:1709-1775">// … 省略 28 行（utils/attachments.ts:L1709-L1736）
+      // When the injected content doesn&#x27;t match disk (stripped HTML comments,
+      // stripped frontmatter, truncated MEMORY.md), cache the RAW disk bytes
+      // with `isPartialView: true`. Edit/Write see the flag and require a real
+      // Read first; getChangedFiles sees real content + undefined offset/limit
+      // so mid-session change detection still works.
+      toolUseContext.readFileState.set(memoryFile.path, {
+        content: memoryFile.contentDiffersFromDisk
+          ? (memoryFile.rawContent ?? memoryFile.content)
+          : memoryFile.content,
+        timestamp: Date.now(),
+        offset: undefined,
+        limit: undefined,
+        isPartialView: memoryFile.contentDiffersFromDisk,
+// … 省略 26 行（utils/attachments.ts:L1750-L1775）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/attachments.ts:1709-1775</code>。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/messages.ts:3700-3707</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/messages.ts#L3700-L3707">核对原文</a></summary><pre><code class="language-ts" data-block-id="03-instruction-files.md#021" data-quote-type="P" data-source-range="utils/messages.ts:3700-3707">    case &#x27;nested_memory&#x27;: {
+      return wrapMessagesInSystemReminder([
+        createUserMessage({
+          content: `Contents of ${attachment.content.path}:\n\n${attachment.content.content}`,
+          isMeta: true,
+        }),
+      ])
+    }
+</code></pre></details></figure>
+<p>到此，CLAUDE.md 的覆盖层有了具体形状：来源开关决定谁参与，目录与导入决定顺序，frontmatter 决定何时加载，非淘汰集合决定是否再注入，而覆盖默认行为仍由包装文字要求模型遵循。权限规则的收集是另一套逻辑，不能从这里的文件顺序推断 deny 被后文件覆盖（<code>utils/settings/constants.ts:3-22</code>、<code>utils/permissions/permissions.ts:213-231</code>、<code>utils/permissions/permissionsLoader.ts:116-134</code>）。</p>
+<p>下一卷将读这些字符串怎样给行为划界。顺序和角色只回答模型收到什么；禁令后的替代动作、条件与授权范围，必须继续读句子本身。<a href="04-prohibitions-and-authorization.html">第 4 章</a>从这个问题接下去。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="02-prompt-cache.html"><span class="page-direction">&larr; 上一章</span><span>第 2 章 · 分段缓存与会话生命周期</span></a>
+<a href="04-prohibitions-and-authorization.html"><span class="page-direction">&rarr; 下一章</span><span>第 4 章 · 禁止、替代动作与授权豁免</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

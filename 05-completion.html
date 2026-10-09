@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 5 章 · 做到什么程度，何时算做完 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html" aria-current="page"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+<ol class="section-list">
+<li><a href="#section-1">先把请求落到代码里</a></li>
+<li><a href="#section-2">少改与做完同时成立</a></li>
+<li><a href="#section-3">汇报需要与检查结果一致</a></li>
+<li><a href="#section-4">任务状态是另一份完成声明</a></li>
+<li><a href="#section-5">核验者也要交证据</a></li>
+<li><a href="#section-6">教学风格会主动设置停点</a></li>
+</ol>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html" aria-current="page"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+<ol class="section-list">
+<li><a href="#section-1">先把请求落到代码里</a></li>
+<li><a href="#section-2">少改与做完同时成立</a></li>
+<li><a href="#section-3">汇报需要与检查结果一致</a></li>
+<li><a href="#section-4">任务状态是另一份完成声明</a></li>
+<li><a href="#section-5">核验者也要交证据</a></li>
+<li><a href="#section-6">教学风格会主动设置停点</a></li>
+</ol>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">B · 行为引导模式<span>第 05 章</span></p>
+    <h1>做到什么程度，何时算做完</h1>
+  </header>
+  <div class="chapter-body"><p>第 4 章解释授权边界，这章追问工程任务怎样结束。主要源码是 <code>constants/prompts.ts:221-229</code>、<code>constants/prompts.ts:204-213</code> 与任务工具的描述。读它们值得把三个问题分开：用户究竟要改什么，改到哪里算够，凭什么宣布完成。范围收窄可以阻止多余修改，却不自动免除核验；“别过度设计”也不是只交一个思路就停下的许可。</p>
+<h2 id="section-1">先把请求落到代码里</h2>
+<p>Doing tasks 用改名举反例：用户要求把 methodName 改成 snake case，模型不能只回 method_name，应找到方法并修改代码。它还让模型依据软件工程任务和当前目录理解含糊请求。这里要求理解目标，而不是机械变换用户输入的字符串；同段又把是否值得尝试大型任务交给用户判断（B-07）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:221-229</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L221-L229">核对原文</a></summary><pre><code class="language-ts" data-block-id="05-completion.md#001" data-quote-type="P" data-source-range="constants/prompts.ts:221-229">// … 省略 1 行（constants/prompts.ts:L221-L221）
+    `The user will primarily request you to perform software engineering tasks. These may include solving bugs, adding new functionality, refactoring code, explaining code, and more. When given an unclear or generic instruction, consider it in the context of these software engineering tasks and the current working directory. For example, if the user asks you to change &quot;methodName&quot; to snake case, do not reply with just &quot;method_name&quot;, instead find the method in the code and modify the code.`,
+    `You are highly capable and often allow users to complete ambitious tasks that would otherwise be too complex or take too long. You should defer to user judgement about whether a task is too large to attempt.`,
+    // @[MODEL LAUNCH]: capy v8 assertiveness counterweight (PR #24302) — un-gate once validated on external via A/B
+    ...(process.env.USER_TYPE === &#x27;ant&#x27;
+      ? [
+          `If you notice the user&#x27;s request is based on a misconception, or spot a bug adjacent to what they asked about, say so. You&#x27;re a collaborator, not just an executor—users benefit from your judgment, not just your compliance.`,
+        ]
+      : []),
+</code></pre></details></figure>
+<p>这个例子把任务结果与回复内容分开。回答一个正确的新名字，并没有改变项目里的符号；寻找调用点和改源码才回应了原请求。源码没有在这句里列出完整重构算法，但它给出一个很具体的完成反例。讨论 harness 的任务纪律时，引用这种反例比概括“积极帮助用户”更能看清动作要求。</p>
+<p>读代码、少建文件、失败后先诊断的基本纪律已在第 4 章解释（<code>constants/prompts.ts:230-236</code>）。这里继续看它与范围限制的关系：读过的代码决定实际需要什么，用户请求决定应当做什么，失败输出决定尚未完成什么。它们都不能由“已经尝试过”替代。重试同一动作是否合理，要看有没有新诊断，而不是重试次数本身。</p>
+<h2 id="section-2">少改与做完同时成立</h2>
+<p>范围规则排除额外功能、周边清理、假想未来抽象和不可能发生场景的回退，原文详见<a href="04-prohibitions-and-authorization.html">第 4 章</a>。与之配对的 内部用户段要求完工前运行测试、执行脚本、检查输出；不能验证则直说。Minimum complexity 被紧接着解释为不添多余工作，而不是跳过完成环节（B-09）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:204-213</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L204-L213">核对原文</a></summary><pre><code class="language-ts" data-block-id="05-completion.md#002" data-quote-type="P" data-source-range="constants/prompts.ts:204-213">    // @[MODEL LAUNCH]: Update comment writing for Capybara — remove or soften once the model stops over-commenting by default
+    ...(process.env.USER_TYPE === &#x27;ant&#x27;
+      ? [
+          `Default to writing no comments. Only add one when the WHY is non-obvious: a hidden constraint, a subtle invariant, a workaround for a specific bug, behavior that would surprise a reader. If removing the comment wouldn&#x27;t confuse a future reader, don&#x27;t write it.`,
+          `Don&#x27;t explain WHAT the code does, since well-named identifiers already do that. Don&#x27;t reference the current task, fix, or callers (&quot;used by X&quot;, &quot;added for the Y flow&quot;, &quot;handles the case from issue #123&quot;), since those belong in the PR description and rot as the codebase evolves.`,
+          `Don&#x27;t remove existing comments unless you&#x27;re removing the code they describe or you know they&#x27;re wrong. A comment that looks pointless to you may encode a constraint or a lesson from a past bug that isn&#x27;t visible in the current diff.`,
+          // @[MODEL LAUNCH]: capy v8 thoroughness counterweight (PR #24302) — un-gate once validated on external via A/B
+          `Before reporting a task complete, verify it actually works: run the test, execute the script, check the output. Minimum complexity means no gold-plating, not skipping the finish line. If you can&#x27;t verify (no test exists, can&#x27;t run the code), say so explicitly rather than claiming success.`,
+        ]
+      : []),
+</code></pre></details></figure>
+<p>这里的 内部用户条件不能省略。注释称它是针对某模型的 thoroughness counterweight，计划外部 A/B 验证后解除门控。我们可以看到这条规则如何加入数组，却不能把发布注释当成门控已解除的记录。当前树同时保存通用任务纪律和只给内部用户的补充，书中对覆盖范围的解释要跟条件一致。</p>
+<p>内部注释规则也有相同结构。默认不加注释，仅解释隐含约束、微妙不变量或令人意外的行为；避免讲 WHAT，因为命名应已表达它。已有注释又受保护，除非相关代码删了或明确知道注释错了。原文给出的理由是注释可能保存当前 diff 看不到的历史约束（B-06）。</p>
+<p>注释规则与完成核验同在上引的 内部用户数组中，原文已一并保留，不再重复引用。</p>
+<p>于是，“只改必要内容”也不能被读成“看起来啰嗦的注释一律删掉”。模型新增的解释、用户已有的注释和代码本身分别被约束。范围缩小不是清空上下文；相反，它要求先确认哪些旧文字承载真实条件。这个判断不能从行数多少自动推出，提示词才列出 WHY 与 WHAT 的区分。</p>
+<h2 id="section-3">汇报需要与检查结果一致</h2>
+<p>内部用户的报告规则禁止虚报测试通过、隐藏或简化失败项以制造绿色结果，也禁止把未完成工作说成完成。另一半同样重要：检查确实通过或任务确实完成时，要直接说明，不给已确认结果加无必要免责声明，不再反复验证。原文在同一句里约束了夸大与过度退缩（B-10）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:237-242</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L237-L242">核对原文</a></summary><pre><code class="language-ts" data-block-id="05-completion.md#003" data-quote-type="P" data-source-range="constants/prompts.ts:237-242">    // @[MODEL LAUNCH]: False-claims mitigation for Capybara v8 (29-30% FC rate vs v4&#x27;s 16.7%)
+    ...(process.env.USER_TYPE === &#x27;ant&#x27;
+      ? [
+          `Report outcomes faithfully: if tests fail, say so with the relevant output; if you did not run a verification step, say that rather than implying it succeeded. Never claim &quot;all tests pass&quot; when output shows failures, never suppress or simplify failing checks (tests, lints, type errors) to manufacture a green result, and never characterize incomplete or broken work as done. Equally, when a check did pass or a task is complete, state it plainly — do not hedge confirmed results with unnecessary disclaimers, downgrade finished work to &quot;partial,&quot; or re-verify things you already checked. The goal is an accurate report, not a defensive one.`,
+        ]
+      : []),
+</code></pre></details></figure>
+<p>前面的注释保存 false-claims 比例和模型代号，这是注释记录的背景，不是本书的复现实验。具体可核对的文本要求则很直接：输出显示失败，报告必须承认失败；没有运行，不能暗示运行过；通过了，也不能为了显得谨慎把成功说成部分完成。报告和证据之间应保持同一口径。</p>
+<p>邻近问题的提醒也被加进 内部用户段。原文要求指出用户误解或相邻 bug，注释称它是 assertiveness counterweight，并留着外部 A/B 计划。这里的动作是“说出来”，没有要求未经授权把周边问题一并改了。与第 4 章范围限制配对读，可以保留工程判断，又不把发现问题等同于扩大实现（<code>constants/prompts.ts:221-229</code>）。</p>
+<h2 id="section-4">任务状态是另一份完成声明</h2>
+<p>TodoWrite 先给复杂任务、多项请求和明确列表需求列使用条件，也给简单或纯信息任务列跳过条件。dark-mode 示例的理由段把用户要求的测试和构建纳入待办。它说明“完成清单”应包括用户点名的检查，而不是只列写组件、改样式后就收工（C-23）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TodoWriteTool/prompt.ts:3-45</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TodoWriteTool/prompt.ts#L3-L45">核对原文</a></summary><pre><code class="language-ts" data-block-id="05-completion.md#004" data-quote-type="P" data-source-range="tools/TodoWriteTool/prompt.ts:3-45">// … 省略 36 行（tools/TodoWriteTool/prompt.ts:L3-L38）
+&lt;reasoning&gt;
+The assistant used the todo list because:
+1. Adding dark mode is a multi-step feature requiring UI, state management, and styling changes
+2. The user explicitly requested tests and build be run afterward
+3. The assistant inferred that tests and build need to pass by adding &quot;Ensure tests and build succeed&quot; as the final task
+&lt;/reasoning&gt;
+&lt;/example&gt;
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TodoWriteTool/prompt.ts:3-45</code>。</p>
+<p>状态段要求只有一个 in_progress，做完马上标 completed，失败、阻塞、半成品、缺必要文件都不能标完成。content 与 activeForm 分别用于描述要做什么、正在做什么。前者是任务目标，后者是进度表达；把它们都填成“完成任务”会丢掉工具描述期望的可观察动作。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/TodoWriteTool/prompt.ts:144-184</code><span>摘录 15 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/TodoWriteTool/prompt.ts#L144-L184">核对原文</a></summary><pre><code class="language-ts" data-block-id="05-completion.md#005" data-quote-type="P" data-source-range="tools/TodoWriteTool/prompt.ts:144-184">// … 省略 7 行（tools/TodoWriteTool/prompt.ts:L144-L150）
+   **IMPORTANT**: Task descriptions must have two forms:
+   - content: The imperative form describing what needs to be done (e.g., &quot;Run tests&quot;, &quot;Build the project&quot;)
+   - activeForm: The present continuous form shown during execution (e.g., &quot;Running tests&quot;, &quot;Building the project&quot;)
+
+2. **Task Management**:
+   - Update task status in real-time as you work
+   - Mark tasks complete IMMEDIATELY after finishing (don&#x27;t batch completions)
+   - Exactly ONE task must be in_progress at any time (not less, not more)
+   - Complete current tasks before starting new ones
+   - Remove tasks that are no longer relevant from the list entirely
+
+3. **Task Completion Requirements**:
+   - ONLY mark a task as completed when you have FULLY accomplished it
+   - If you encounter errors, blockers, or cannot finish, keep the task as in_progress
+   - When blocked, create a new task describing what needs to be resolved
+// … 省略 19 行（tools/TodoWriteTool/prompt.ts:L166-L184）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/TodoWriteTool/prompt.ts:144-184</code>。</p>
+<p>TaskCreate 与 TaskUpdate 也要求先标进行中、完全完成才设 completed；新任务 pending，依赖关系另交更新工具。TaskUpdate 还要求更新前读最新 TaskGet，避免陈旧状态。共享任务表中的状态会被其他参与者读到，进度陈述不能只为模型自己留下“已调用工具”的记录（<code>tools/TaskCreateTool/prompt.ts:5-56</code>、<code>tools/TaskUpdateTool/prompt.ts:1-77</code>）。协作协议见<a href="09-agent-workflows.html">第 9 章</a>。</p>
+<p>这些要求写在工具提示词里，不能靠字段枚举推导执行器理解“测试是否仍失败”。枚举约束允许填哪些状态，完成规范约束什么时候该填。代码若只验证 completed 是合法字符串，仍需要模型根据检查输出作出准确判断。这两种检查各自有什么证据，讨论时应分清。</p>
+<h2 id="section-5">核验者也要交证据</h2>
+<p>VERIFICATION_AGENT 特性和 tengu_hive_evidence 同时满足才加入独立核验提示。它把非平凡修改定义为三项：三文件以上、后端/API 或基础设施改动。自己做的、fork 做的、子代理做的，都由向用户报告的人负责安排核验；自己的检查不能替核验者判定（B-19）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:390-400</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L390-L400">核对原文</a></summary><pre><code class="language-ts" data-block-id="05-completion.md#006" data-quote-type="P" data-source-range="constants/prompts.ts:390-400">    hasAgentTool &amp;&amp;
+    feature(&#x27;VERIFICATION_AGENT&#x27;) &amp;&amp;
+    // 3P default: false — verification agent is ant-only A/B
+    getFeatureValue_CACHED_MAY_BE_STALE(&#x27;tengu_hive_evidence&#x27;, false)
+      ? `The contract: when non-trivial implementation happens on your turn, independent adversarial verification must happen before you report completion \u2014 regardless of who did the implementing (you directly, a fork you spawned, or a subagent). You are the one reporting to the user; you own the gate. Non-trivial means: 3+ file edits, backend/API changes, or infrastructure changes. Spawn the ${AGENT_TOOL_NAME} tool with subagent_type=&quot;${VERIFICATION_AGENT_TYPE}&quot;. Your own checks, caveats, and a fork&#x27;s self-checks do NOT substitute \u2014 only the verifier assigns a verdict; you cannot self-assign PARTIAL. Pass the original user request, all files changed (by anyone), the approach, and the plan file path if applicable. Flag concerns if you have them but do NOT share test results or claim things work. On FAIL: fix, resume the verifier with its findings plus your fix, repeat until PASS. On PASS: spot-check it \u2014 re-run 2-3 commands from its report, confirm every PASS has a Command run block with output that matches your re-run. If any PASS lacks a command block or diverges, resume the verifier with the specifics. On PARTIAL (from the verifier): report what passed and what could not be verified.`
+// … 省略 6 行（constants/prompts.ts:L395-L400）
+</code></pre></details></figure>
+<p>原文依据：<code>constants/prompts.ts:390-400</code>。</p>
+<p>流程没有在拿到 PASS 就结束。原句要求抽查两三条报告里的命令，核对每个 PASS 的命令块与结果；FAIL 后修复、恢复核验者并循环，PARTIAL 由核验者给出再报告哪些已验证。这里要求的是可重跑的完成证据，不是把一个“独立审过”标签当作证明。该实验分支的存在与实际启用仍由前面的条件限定。</p>
+<h2 id="section-6">教学风格会主动设置停点</h2>
+<p>Explanatory 保留工程指令，但允许相关教学解释超过通常长度，要求解释出现在对话里，不写进代码库。Learning 进一步把人参与变成流程：生成二十行以上且涉及指定设计选择时，让用户补二到十行，先放唯一 TODO(human)，发出请求后停止，等待人实现（B-25、B-26）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/outputStyles.ts:29-55</code><span>摘录 13 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/outputStyles.ts#L29-L55">核对原文</a></summary><pre><code class="language-ts" data-block-id="05-completion.md#007" data-quote-type="P" data-source-range="constants/outputStyles.ts:29-55">// … 省略 3 行（constants/outputStyles.ts:L29-L31）
+In order to encourage learning, before and after writing code, always provide brief educational explanations about implementation choices using (with backticks):
+&quot;\`${figures.star} Insight ─────────────────────────────────────\`
+[2-3 key educational points]
+\`─────────────────────────────────────────────────\`&quot;
+
+These insights should be included in the conversation, not in the codebase. You should generally focus on interesting insights that are specific to the codebase or the code you just wrote, rather than general programming concepts.`
+// … 省略 11 行（constants/outputStyles.ts:L38-L48）
+    prompt: `You are an interactive CLI tool that helps users with software engineering tasks. In addition to software engineering tasks, you should provide educational insights about the codebase along the way.
+
+You should be clear and educational, providing helpful explanations while remaining focused on the task. Balance educational content with task completion. When providing insights, you may exceed typical length constraints, but remain focused and relevant.
+
+# Explanatory Style Active
+${EXPLANATORY_FEATURE_PROMPT}`,
+  },
+</code></pre></details></figure>
+<p>原文依据：<code>constants/outputStyles.ts:29-55</code>。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/outputStyles.ts:56-93</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/outputStyles.ts#L56-L93">核对原文</a></summary><pre><code class="language-ts" data-block-id="05-completion.md#008" data-quote-type="P" data-source-range="constants/outputStyles.ts:56-93">// … 省略 12 行（constants/outputStyles.ts:L56-L67）
+In order to encourage learning, ask the human to contribute 2-10 line code pieces when generating 20+ lines involving:
+- Design decisions (error handling, data structures)
+- Business logic with multiple valid approaches  
+- Key algorithms or interface definitions
+// … 省略 16 行（constants/outputStyles.ts:L72-L87）
+### Key Guidelines
+- Frame contributions as valuable design decisions, not busy work
+- You must first add a TODO(human) section into the codebase with your editing tools before making the Learn by Doing request      
+- Make sure there is one and only one TODO(human) section in the code
+- Don&#x27;t take any action or output anything after the Learn by Doing request. Wait for human implementation before proceeding.
+
+</code></pre></details></figure>
+<p>原文依据：<code>constants/outputStyles.ts:56-93</code>。</p>
+<p>（原文见 constants/outputStyles.ts:94-134，共 41 行，略）</p>
+<p>原文依据：<code>constants/outputStyles.ts:94-134</code>。</p>
+<p>这是一种有意留下的待人完成步骤，不能拿它和“别留半成品”只作字面比较。原文既要求处理常规实现，又把有意义的设计贡献交给用户；TODO、请求格式和等待规则都限定了这次停点。是否处在 Learning 风格，正是第 1 章装配时必须核对的选择。</p>
+<p>DEFAULT_AGENT_PROMPT 给子任务另一种结束形式：完整做完，不多加工，向调用者简短报告成果与关键发现；环境附注要求绝对路径，只在具体文本决定结论时贴代码，不复述读过的每一段（<code>constants/prompts.ts:758-770</code>）。完成任务、交付证据与组织最终回复相连，但仍是不同动作。下一章将看最后一个动作怎样按接收者调整。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="04-prohibitions-and-authorization.html"><span class="page-direction">&larr; 上一章</span><span>第 4 章 · 禁止、替代动作与授权豁免</span></a>
+<a href="06-output-and-subtasks.html"><span class="page-direction">&rarr; 下一章</span><span>第 6 章 · 给用户看的文字与子任务专用提示</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

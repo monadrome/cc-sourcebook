@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 10 章 · 一次工具调用怎样得到 allow、deny 或 ask | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html" aria-current="page"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+<ol class="section-list">
+<li><a href="#section-1">入口先形成权限上下文</a></li>
+<li><a href="#section-2">规则来自多处，但行为分开收集</a></li>
+<li><a href="#section-3">deny 和 ask 在前，工具自查在后</a></li>
+<li><a href="#section-4">模式短路只处理走到这里的结果</a></li>
+<li><a href="#section-5">内容规则的语法会影响覆盖范围</a></li>
+<li><a href="#section-6">原因类型让结果可以回查</a></li>
+</ol>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html" aria-current="page"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+<ol class="section-list">
+<li><a href="#section-1">入口先形成权限上下文</a></li>
+<li><a href="#section-2">规则来自多处，但行为分开收集</a></li>
+<li><a href="#section-3">deny 和 ask 在前，工具自查在后</a></li>
+<li><a href="#section-4">模式短路只处理走到这里的结果</a></li>
+<li><a href="#section-5">内容规则的语法会影响覆盖范围</a></li>
+<li><a href="#section-6">原因类型让结果可以回查</a></li>
+</ol>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">D · 权限与安全边界<span>第 10 章</span></p>
+    <h1>一次工具调用怎样得到 allow、deny 或 ask</h1>
+  </header>
+  <div class="chapter-body"><p>权限卷读实际返回值与执行分支；模型效果、缺失分类器模板及外部沙箱实现的边界统一见阅读说明。第 10 章从 <code>hooks/useCanUseTool.tsx:32-37</code> 跟到 <code>utils/permissions/permissions.ts:1169-1181</code> 的内层判定。最值得核对的是顺序：整工具规则、工具自查、安全检查和模式短路各能提前返回，后面的 allow 没机会改写已经终止的 deny。</p>
+<h2 id="section-1">入口先形成权限上下文</h2>
+<p>useCanUseTool 为调用创建 PermissionContext，先查中止，再选择 forceDecision 或 hasPermissionsToUseTool。之后按 allow、deny、ask 分流。forceDecision 是显式参数，正常路径才进入权限主函数；判断一次真实调用，必须先知道结果是哪个入口给的，而不只查当前模式名字（D-03）。</p>
+<figure class="source-quote"><details class="source"><summary><code>hooks/useCanUseTool.tsx:32-37</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/hooks/useCanUseTool.tsx#L32-L37">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#001" data-quote-type="C" data-source-range="hooks/useCanUseTool.tsx:32-37">    t0 = async (tool, input, toolUseContext, assistantMessage, toolUseID, forceDecision) =&gt; new Promise(resolve =&gt; {
+      const ctx = createPermissionContext(tool, input, toolUseContext, assistantMessage, toolUseID, setToolPermissionContext, createPermissionQueueOps(setToolUseConfirmQueue));
+      if (ctx.resolveIfAborted(resolve)) {
+        return;
+      }
+      const decisionPromise = forceDecision !== undefined ? Promise.resolve(forceDecision) : hasPermissionsToUseTool(tool, input, toolUseContext, assistantMessage, toolUseID);
+</code></pre></details></figure>
+<p>这个上下文携带当前调用与会话状态，工具还会返回更新后的输入。执行前的输入不一定原封不动沿管线传下去，hooks 的更新与规则复查见第 12 章。当前章先按没有外部强制结果的普通管线，追 hasPermissionsToUseToolInner 返回什么。</p>
+<h2 id="section-2">规则来自多处，但行为分开收集</h2>
+<p>来源顺序不能单独解释权限优先级。数组先确定有哪些来源，后面的加载器和匹配函数再按行为收集与返回；如果只读settings的“后覆盖”注释，会错把较后文件当成删除早期deny的指令（D-01、D-35）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:109-114</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L109-L114">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#002" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:109-114">const PERMISSION_RULE_SOURCES = [
+  ...SETTING_SOURCES,
+  &#x27;cliArg&#x27;,
+  &#x27;command&#x27;,
+  &#x27;session&#x27;,
+] as const satisfies readonly PermissionRuleSource[]
+</code></pre></details></figure>
+<p>settings数组的“后覆盖”是配置层的注释，权限函数展开出的deny/ask集合却仍保留每个source。后面的判定先看行为类别，再看具体匹配；顺序优先级不由文件来源的排列单独决定。这个区别解释了为什么要读下一条校注。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>utils/settings/constants.ts:3-22</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/settings/constants.ts#L3-L22">核对原文</a></div><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#003" data-quote-type="M" data-source-range="utils/settings/constants.ts:3-22">/**
+ * All possible sources where settings can come from
+ * Order matters - later sources override earlier ones
+ */
+// … 省略 16 行（utils/settings/constants.ts:L7-L22）
+</code></pre></div></figure>
+<p>原文依据：<code>utils/settings/constants.ts:3-22</code>。</p>
+<p>D-35把允许的托管策略限制与普通规则收集拆开：allowManagedPermissionRulesOnly会改变磁盘加载来源，却不会重写所有运行时数组。一次命中至少要保留ruleBehavior和source，不能把policySettings排在最后说成它自动覆盖任何早期deny。</p>
+<p>SETTING_SOURCES的顺序只给出设置文件的合并意图；权限函数随后把deny和ask按source分开建成对象，意味着行为优先级还在后面的匹配函数里。来源顺序和行为顺序是两张表。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:213-231</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L213-L231">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#004" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:213-231">export function getDenyRules(context: ToolPermissionContext): PermissionRule[] {
+  return PERMISSION_RULE_SOURCES.flatMap(source =&gt;
+    (context.alwaysDenyRules[source] || []).map(ruleString =&gt; ({
+      source,
+      ruleBehavior: &#x27;deny&#x27;,
+      ruleValue: permissionRuleValueFromString(ruleString),
+    })),
+  )
+// … 省略 11 行（utils/permissions/permissions.ts:L221-L231）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissions.ts:213-231</code>。</p>
+<p>第二段把规则集合具体化：同一来源字段被逐个解析成PermissionRule。它保留source和ruleBehavior，正是为了让后续解释器能说清“哪一类规则来自哪里”，而不是只剩一个字符串。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissionsLoader.ts:116-134</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissionsLoader.ts#L116-L134">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#005" data-quote-type="C" data-source-range="utils/permissions/permissionsLoader.ts:116-134">// … 省略 5 行（utils/permissions/permissionsLoader.ts:L116-L120）
+  // If allowManagedPermissionRulesOnly is set, only use managed permission rules
+  if (shouldAllowManagedPermissionRulesOnly()) {
+    return getPermissionRulesForSource(&#x27;policySettings&#x27;)
+  }
+// … 省略 10 行（utils/permissions/permissionsLoader.ts:L125-L134）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissionsLoader.ts:116-134</code>。</p>
+<p>托管规则专用开关会跳过普通磁盘追加路径，但运行时来源不在这条遍历中。一次命中须同时保留行为与来源，再查是谁建立了规则；不能用一个加载开关给所有上下文更新下结论。</p>
+<p>删除规则也有来源限制。policySettings、flagSettings、command 的规则在删除入口直接抛错，说明当前 API 不允许本地删除这些只读来源。是否可新增会话许可、修改某个设置或切模式是其他操作，不能由“删不了这条规则”泛推为所有权限上下文都不可变（D-16）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:1334-1340</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L1334-L1340">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#006" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:1334-1340">  if (
+    rule.source === &#x27;policySettings&#x27; ||
+    rule.source === &#x27;flagSettings&#x27; ||
+    rule.source === &#x27;command&#x27;
+  ) {
+    throw new Error(&#x27;Cannot delete permission rules from read-only settings&#x27;)
+  }
+</code></pre></details></figure>
+<p>删规则受来源约束，不代表读取规则也只接受这三类；加载器与更新器有不同权限。常量里出现一个source，不能推导它可以被当前工具写回。后面的deny优先级又与这份编辑权限独立。</p>
+<h2 id="section-3">deny 和 ask 在前，工具自查在后</h2>
+<p>整工具deny的意义在返回位置：它发生在任何模式短路前。模型看见工具不改变这一返回；第7章的可见性过滤与当前调用许可是两个入口，不能用前者证明后者已放行（D-04）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:1169-1181</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L1169-L1181">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#007" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:1169-1181">// … 省略 2 行（utils/permissions/permissions.ts:L1169-L1170）
+  const denyRule = getDenyRuleForTool(appState.toolPermissionContext, tool)
+  if (denyRule) {
+    return {
+      behavior: &#x27;deny&#x27;,
+// … 省略 7 行（utils/permissions/permissions.ts:L1175-L1181）
+</code></pre></details></figure>
+<p>接着查整工具 ask。Bash 沙箱启用、自动许可开启且该输入确实会走沙箱时，跳过立即 ask，继续让工具检查命令级规则。排除命令或显式禁沙箱等实际不走沙箱的调用不享这条例外。这里没有把整工具 ask 删除，只为一种执行路径留下后续检查（D-05）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:1183-1206</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L1183-L1206">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#008" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:1183-1206">// … 省略 6 行（utils/permissions/permissions.ts:L1183-L1188）
+    const canSandboxAutoAllow =
+      tool.name === BASH_TOOL_NAME &amp;&amp;
+      SandboxManager.isSandboxingEnabled() &amp;&amp;
+      SandboxManager.isAutoAllowBashIfSandboxedEnabled() &amp;&amp;
+      shouldUseSandbox(input)
+
+    if (!canSandboxAutoAllow) {
+      return {
+        behavior: &#x27;ask&#x27;,
+// … 省略 9 行（utils/permissions/permissions.ts:L1198-L1206）
+</code></pre></details></figure>
+<p>工具自查没有意见时，后面仍须给终局判定。passthrough不是一种隐含许可；异常处理是否重新抛出又决定这个阶段能否继续，所以解析结果与权限返回要分开读（D-06）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:1208-1223</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L1208-L1223">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#009" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:1208-1223">// … 省略 7 行（utils/permissions/permissions.ts:L1208-L1214）
+    const parsedInput = tool.inputSchema.parse(input)
+    toolPermissionResult = await tool.checkPermissions(parsedInput, context)
+  } catch (e) {
+    // Rethrow abort errors so they propagate properly
+    if (e instanceof AbortError || e instanceof APIUserAbortError) {
+      throw e
+    }
+    logError(e)
+  }
+</code></pre></details></figure>
+<p>工具返回 deny 的分支先于模式短路（<code>utils/permissions/permissions.ts:1225-1228</code>）。requiresUserInteraction 的 ask、用户配置的内容级 ask、安全检查产生的 safetyCheck ask 也会提前返回，不能被后面 bypass 直接放行。敏感文件的内部豁免在工具自查函数中，auto 后续又区分能否由分类器批准；这一点须与第 13 章和第 11 章连读，不能简称“任何模式都一定弹窗”（D-07）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:1230-1260</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L1230-L1260">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#010" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:1230-1260">// … 省略 14 行（utils/permissions/permissions.ts:L1230-L1243）
+  if (
+    toolPermissionResult?.behavior === &#x27;ask&#x27; &amp;&amp;
+    toolPermissionResult.decisionReason?.type === &#x27;rule&#x27; &amp;&amp;
+    toolPermissionResult.decisionReason.rule.ruleBehavior === &#x27;ask&#x27;
+  ) {
+    return toolPermissionResult
+  }
+// … 省略 10 行（utils/permissions/permissions.ts:L1251-L1260）
+</code></pre></details></figure>
+<p>这三条提前返回是在bypass短路之前执行，结果的decisionReason因此也成为控制流的一部分。内容ask靠ruleBehavior识别，敏感路径靠safetyCheck识别；仅看behavior都是ask会漏掉它们为何不能被同一种模式覆盖。</p>
+<h2 id="section-4">模式短路只处理走到这里的结果</h2>
+<p>bypassPermissions 会返回 allow；plan 且 isBypassPermissionsModeAvailable 为真也走同一分支。旁注释说从 bypass 进入 plan，但真实判断没有查 prePlanMode；初始化该可用性标志时，allowDangerouslySkipPermissions 也可使其为真。应按布尔条件描述，而不是把注释当完整切换历史检查（D-63）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:1262-1281</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L1262-L1281">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#011" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:1262-1281">// … 省略 6 行（utils/permissions/permissions.ts:L1262-L1267）
+  const shouldBypassPermissions =
+    appState.toolPermissionContext.mode === &#x27;bypassPermissions&#x27; ||
+    (appState.toolPermissionContext.mode === &#x27;plan&#x27; &amp;&amp;
+      appState.toolPermissionContext.isBypassPermissionsModeAvailable)
+  if (shouldBypassPermissions) {
+    return {
+      behavior: &#x27;allow&#x27;,
+      updatedInput: getUpdatedInputOrFallback(toolPermissionResult, input),
+// … 省略 6 行（utils/permissions/permissions.ts:L1276-L1281）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissions.ts:1262-1281</code>。</p>
+<p>整工具 allow 在模式检查后。工具结果原为 passthrough 时，最后归一成 ask；工具已经给的其他行为仍按其结果返回。到了这个位置没有规则、模式或工具给最终许可，普通调用进入询问路径，这就是默认动作的具体落点（D-09）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissions.ts:1283-1310</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissions.ts#L1283-L1310">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#012" data-quote-type="C" data-source-range="utils/permissions/permissions.ts:1283-1310">// … 省略 16 行（utils/permissions/permissions.ts:L1283-L1298）
+  // 3. Convert &quot;passthrough&quot; to &quot;ask&quot;
+  const result: PermissionDecision =
+    toolPermissionResult.behavior === &#x27;passthrough&#x27;
+      ? {
+          ...toolPermissionResult,
+          behavior: &#x27;ask&#x27; as const,
+          message: createPermissionRequestMessage(
+            tool.name,
+            toolPermissionResult.decisionReason,
+          ),
+        }
+      : toolPermissionResult
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/permissions.ts:1283-1310</code>。</p>
+<p>外层 dontAsk、auto、无提示环境的变换另见下一章。内层 ask 不能直接等同于屏幕已出现弹窗，它是等待后续处理的判定结果；同样，内层 allow 也不能抹掉之后工具输入验证或沙箱执行的条件。每层返回值要连着调用方读，才知道它终止了哪一段流程。</p>
+<h2 id="section-5">内容规则的语法会影响覆盖范围</h2>
+<p>规则解析把空括号 Bash() 和单独通配符 Bash(*) 归一成整工具规则，不留下 ruleContent。旧名又先规范为当前工具名。于是，“规则写了括号”不保证它是内容级许可；匹配整工具的函数看的是解析后的字段是否存在（D-11、D-12）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/permissionRuleParser.ts:124-132</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/permissionRuleParser.ts#L124-L132">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#013" data-quote-type="C" data-source-range="utils/permissions/permissionRuleParser.ts:124-132">  // Empty content (e.g., &quot;Bash()&quot;) or standalone wildcard (e.g., &quot;Bash(*)&quot;)
+  // should be treated as just the tool name (tool-wide rule)
+  if (rawContent === &#x27;&#x27; || rawContent === &#x27;*&#x27;) {
+    return { toolName: normalizeLegacyToolName(toolName) }
+  }
+
+  // Unescape the content
+  const ruleContent = unescapeRuleContent(rawContent)
+  return { toolName: normalizeLegacyToolName(toolName), ruleContent }
+</code></pre></details></figure>
+<p>shell 规则先识别旧式 :* 前缀，接着识别未转义星号通配符，其余精确匹配。结尾只有一个未转义星号且形如空格星号时，尾部参数可选，git * 也匹配裸 git；多个星号的模式排除在这个可选处理外。正则带 dotAll，星号可以跨换行。这些细节改变真实匹配集合（D-13、D-14）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/shellRuleMatching.ts:159-184</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/shellRuleMatching.ts#L159-L184">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#014" data-quote-type="C" data-source-range="utils/permissions/shellRuleMatching.ts:159-184">// … 省略 3 行（utils/permissions/shellRuleMatching.ts:L159-L161）
+  // Check for legacy :* prefix syntax first (backwards compatibility)
+  const prefix = permissionRuleExtractPrefix(permissionRule)
+  if (prefix !== null) {
+    return {
+      type: &#x27;prefix&#x27;,
+      prefix,
+    }
+  }
+// … 省略 15 行（utils/permissions/shellRuleMatching.ts:L170-L184）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/shellRuleMatching.ts:159-184</code>。</p>
+<p>旧式prefix和新wildcard不是同一语法的别名：它们走不同的解析分支，反斜杠转义也会改变星号是否参与匹配。下一块对尾部空格星号的特殊化，是在wildcard分支内部再加的条件。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/shellRuleMatching.ts:136-153</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/shellRuleMatching.ts#L136-L153">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#015" data-quote-type="C" data-source-range="utils/permissions/shellRuleMatching.ts:136-153">// … 省略 6 行（utils/permissions/shellRuleMatching.ts:L136-L141）
+  const unescapedStarCount = (processed.match(/\*/g) || []).length
+  if (regexPattern.endsWith(&#x27; .*&#x27;) &amp;&amp; unescapedStarCount === 1) {
+    regexPattern = regexPattern.slice(0, -3) + &#x27;( .*)?&#x27;
+  }
+
+  // Create regex that matches the entire string.
+  // The &#x27;s&#x27; (dotAll) flag makes &#x27;.&#x27; match newlines, so wildcards match
+  // commands containing embedded newlines (e.g. heredoc content after splitCommand_DEPRECATED).
+  const flags = &#x27;s&#x27; + (caseInsensitive ? &#x27;i&#x27; : &#x27;&#x27;)
+  const regex = new RegExp(`^${regexPattern}$`, flags)
+
+  return regex.test(command)
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/shellRuleMatching.ts:136-153</code>。</p>
+<p>“git *”可匹配裸git是一个从人类直觉看不出的例外；多星号模式又被排除，避免把最后一个参数可选错误扩展到整条模式。dotAll还让换行成为星号可匹配内容，因此heredoc等输入不能只按单行shell命令估计。</p>
+<p>复合命令还要逐子命令检查。完整 echo hello &amp;&amp; rm -rf / 不以 rm 开头，单靠全命令前缀匹配会漏掉子命令；源码注释特别要求先查所有子命令 deny，再返回整命令 ask，避免把 deny 降成 ask。循环先保存首个 ask，发现任一 deny 立即终止（D-34）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/bashPermissions.ts:1295-1337</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/bashPermissions.ts#L1295-L1337">核对原文</a></summary><pre><code class="language-ts" data-block-id="10-permission-pipeline.md#016" data-quote-type="M" data-source-range="tools/BashTool/bashPermissions.ts:1295-1337">  // SECURITY: For compound commands, check each subcommand against deny/ask
+  // rules. Prefix rules like Bash(rm:*) won&#x27;t match the full compound command
+  // (e.g., &quot;echo hello &amp;&amp; rm -rf /&quot; doesn&#x27;t start with &quot;rm&quot;), so we must
+  // check each subcommand individually.
+  // IMPORTANT: Subcommand deny checks must run BEFORE full-command ask returns.
+  // Otherwise a wildcard ask rule matching the full command (e.g., Bash(*echo*))
+  // would return &#x27;ask&#x27; before a prefix deny rule on a subcommand (e.g., Bash(rm:*))
+  // gets checked, downgrading a deny to an ask.
+// … 省略 35 行（tools/BashTool/bashPermissions.ts:L1303-L1337）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/BashTool/bashPermissions.ts:1295-1337</code>。</p>
+<p>这段不只是重排规则表，而是改变匹配输入的粒度。工具名、完整命令、子命令各可能产生独立命中；判定顺序要同时考虑“哪条规则”和“对哪个字符串”。安全解析的替换语法又在第 13 章继续展开，单有通配符不能说明全部 shell 行为已被识别。</p>
+<h2 id="section-6">原因类型让结果可以回查</h2>
+<p>PermissionDecisionReason 实际有十一种，包括 rule、mode、hook、classifier、workingDir、safetyCheck 和 other。Phase 1 的旧条目漏计 other，正文按完整联合解释。safetyCheck 还携 classifierApprovable，表明某些安全检查需要进一步区分处理方式，而不是一条 reason 文本就够（D-62）。</p>
+<p>（原文见 types/permissions.ts:271-324，共 54 行，略）</p>
+<p>原文依据：<code>types/permissions.ts:271-324</code>。</p>
+<p>checkRuleBasedPermissions 只复用规则层，不跑模式变换、分类器或 PermissionRequest hooks；其注释提醒调用者预查用户交互要求（<code>utils/permissions/permissions.ts:1060-1070</code>）。第 12 章会看到 PreToolUse allow 如何调用它。到此读懂的是规则优先级，不是全部模式行为；下一章把同一个 ask 放到 dontAsk、auto 和可用性变更里继续看。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="09-agent-workflows.html"><span class="page-direction">&larr; 上一章</span><span>第 9 章 · 委派、计划与任务协作的调用流程</span></a>
+<a href="11-permission-modes.html"><span class="page-direction">&rarr; 下一章</span><span>第 11 章 · 权限模式与分类器的边界</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

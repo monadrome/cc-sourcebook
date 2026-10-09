@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 1 章 · 模型收到的提示词从哪里来 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html" aria-current="page"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+<ol class="section-list">
+<li><a href="#section-1">三个输入分别取得</a></li>
+<li><a href="#section-2">默认装配也有分支</a></li>
+<li><a href="#section-3">风格选择会改动正文</a></li>
+<li><a href="#section-4">配置会变成哪些段</a></li>
+<li><a href="#section-5">上下文的消息角色</a></li>
+<li><a href="#section-6">API 层还会再加工</a></li>
+</ol>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html" aria-current="page"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+<ol class="section-list">
+<li><a href="#section-1">三个输入分别取得</a></li>
+<li><a href="#section-2">默认装配也有分支</a></li>
+<li><a href="#section-3">风格选择会改动正文</a></li>
+<li><a href="#section-4">配置会变成哪些段</a></li>
+<li><a href="#section-5">上下文的消息角色</a></li>
+<li><a href="#section-6">API 层还会再加工</a></li>
+</ol>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">A · 系统提示词装配<span>第 01 章</span></p>
+    <h1>模型收到的提示词从哪里来</h1>
+  </header>
+  <div class="chapter-body"><p>这一卷跟踪输入的装配与失效，只解释当前源码树中的条件和文本顺序；方法边界见<a href="index.html">阅读说明</a>。第一章从 <code>utils/queryContext.ts:30-74</code> 的 fetchSystemPromptParts 开始，看默认提示词、用户上下文、系统上下文如何走到 API。这个入口值得先读：只看常量里的大段英文，会漏掉自定义提示词保留了什么，也会把 CLAUDE.md 放错消息角色。</p>
+<h2 id="section-1">三个输入分别取得</h2>
+<p>fetchSystemPromptParts 并发准备三个结果。自定义提示词存在时，默认装配返回空数组，系统上下文返回空对象；用户上下文仍调用 getUserContext。检查条件是“不为 undefined”，因此不能把这条分支解释为只有非空字符串才替换默认。源码注释称自定义文本完全替换默认，这个“默认”的范围需要连着三个 Promise 看（A-10）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/queryContext.ts:30-74</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/queryContext.ts#L30-L74">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#001" data-quote-type="C" data-source-range="utils/queryContext.ts:30-74">// … 省略 32 行（utils/queryContext.ts:L30-L61）
+    customSystemPrompt !== undefined
+      ? Promise.resolve([])
+// … 省略 6 行（utils/queryContext.ts:L64-L69）
+    getUserContext(),
+    customSystemPrompt !== undefined ? Promise.resolve({}) : getSystemContext(),
+  ])
+  return { defaultSystemPrompt, userContext, systemContext }
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/queryContext.ts:30-74</code>。</p>
+<p>系统提示词和上下文没有在这里直接合成一个长字符串。返回对象把三者留给调用方，注释点名 QueryEngine 会额外注入 coordinator 上下文和记忆机制提示。于是，入口返回什么与最终发送什么是两次检查：入口负责取得基础材料，调用方负责选择与拼接。将默认装配函数当成整个请求的唯一来源，会跳过这层接口。</p>
+<p>主查询引擎将 coordinator 用户上下文展开在基础用户上下文之后；系统数组先放自定义或默认文本，自定义文本配合显式记忆目录覆盖时另加记忆机制提示，appendSystemPrompt 排在后面。这条特殊分支解释了为何替换 system 后仍可能出现记忆相关要求：判断条件和调用函数在数组里清楚列出（A-11）。</p>
+<figure class="source-quote"><details class="source"><summary><code>QueryEngine.ts:284-325</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/QueryEngine.ts#L284-L325">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#002" data-quote-type="C" data-source-range="QueryEngine.ts:284-325">// … 省略 37 行（QueryEngine.ts:L284-L320）
+    const systemPrompt = asSystemPrompt([
+      ...(customPrompt !== undefined ? [customPrompt] : defaultSystemPrompt),
+      ...(memoryMechanicsPrompt ? [memoryMechanicsPrompt] : []),
+      ...(appendSystemPrompt ? [appendSystemPrompt] : []),
+    ])
+</code></pre></details></figure>
+<p>原文依据：<code>QueryEngine.ts:284-325</code>。</p>
+<p>这里出现的是两种不同用途的追加。coordinator 给 userContext 加键值，appendSystemPrompt 加在 system 数组后面；不能因它们都叫“额外上下文”就忽略通道。审查一次配置时，应记录哪一个参数发生了变化，再查对应数组或对象展开的顺序。代码展示顺序，并没有在这里裁定新旧文字互相冲突时模型必须选择哪一句。</p>
+<h2 id="section-2">默认装配也有分支</h2>
+<p>没有自定义替换时，getSystemPrompt 仍不只有一种返回值。SIMPLE 环境变量为真会立即返回身份、工作目录和会话起始日期。常规路径才并发取得技能命令、输出风格、环境信息，随后读初始 settings 和启用工具集合。早返回发生在这些读取之前，把极简路径描述为完整提示词删掉几段并不准确（A-01）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:444-464</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L444-L464">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#003" data-quote-type="P" data-source-range="constants/prompts.ts:444-464">// … 省略 6 行（constants/prompts.ts:L444-L449）
+  if (isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)) {
+    return [
+      `You are Claude Code, Anthropic&#x27;s official CLI for Claude.\n\nCWD: ${getCwd()}\nDate: ${getSessionStartDate()}`,
+    ]
+  }
+// … 省略 10 行（constants/prompts.ts:L455-L464）
+</code></pre></details></figure>
+<p>原文依据：<code>constants/prompts.ts:444-464</code>。</p>
+<p>自主模式又有一个早返回。PROACTIVE 或 KAIROS 构建特性存在且状态激活时，数组包含自主身份、安全文本、系统提醒、记忆机制、环境、语言、MCP 指令和工具结果清理等内容。它直接返回，不经过下面常规静态数组。第 4 章会据此解释不同会话条件下的行为文字；这里先确认路径分岔的位置（A-02）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>constants/prompts.ts:466-489</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L466-L489">核对原文</a></div><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#004" data-quote-type="C" data-source-range="constants/prompts.ts:466-489">  if (
+    (feature(&#x27;PROACTIVE&#x27;) || feature(&#x27;KAIROS&#x27;)) &amp;&amp;
+    proactiveModule?.isProactiveActive()
+  ) {
+// … 省略 20 行（constants/prompts.ts:L470-L489）
+</code></pre></div></figure>
+<p>原文依据：<code>constants/prompts.ts:466-489</code>。</p>
+<p>常规结果则以开场、系统说明、工程任务、安全动作、工具、语气与输出效率为前部，再接已解析的动态段。工程任务段有一个额外条件：没有输出风格，或风格明确 keepCodingInstructions，才保留。这不是只向既有提示词末尾加一段风格文字，原来的工程纪律可能在此省略（A-05）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:557-577</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L557-L577">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#005" data-quote-type="C" data-source-range="constants/prompts.ts:557-577">// … 省略 7 行（constants/prompts.ts:L557-L563）
+    outputStyleConfig === null ||
+    outputStyleConfig.keepCodingInstructions === true
+      ? getSimpleDoingTasksSection()
+      : null,
+// … 省略 10 行（constants/prompts.ts:L568-L577）
+</code></pre></details></figure>
+<p>原文依据：<code>constants/prompts.ts:557-577</code>。</p>
+<p>因此，比较两次提示词时应先核对返回路径，再核对各段是否入选。相同文件里的两个字符串可以各自真实，却从未在同一分支相邻出现。默认、极简、自主、自定义这几种路径也不能只按标题区分：自定义判断在外层取得材料时发生，极简与自主判断在默认装配函数内部发生，层级不同。</p>
+<h2 id="section-3">风格选择会改动正文</h2>
+<p>风格配置有 prompt、来源和 keepCodingInstructions 等字段。同名定义的合并顺序以 styleGroups 数组为准：内建先准备，然后 plugin、user、project、managed 逐组赋值，后赋值覆盖前值。上面的注释却把 managed 写在 user、project 前面。两者必须同时保留，不能为了好讲而只照注释排一张优先级表（A-38）。</p>
+<p>（原文见 constants/outputStyles.ts:11-23，共 13 行，略）</p>
+<p>原文依据：<code>constants/outputStyles.ts:11-23</code>。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/outputStyles.ts:137-175</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/outputStyles.ts#L137-L175">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#007" data-quote-type="C" data-source-range="constants/outputStyles.ts:137-175">// … 省略 21 行（constants/outputStyles.ts:L137-L157）
+  // Add styles in priority order (lowest to highest): built-in, plugin, managed, user, project
+  const styleGroups = [pluginStyles, userStyles, projectStyles, managedStyles]
+
+  for (const styles of styleGroups) {
+    for (const style of styles) {
+      allStyles[style.name] = {
+// … 省略 12 行（constants/outputStyles.ts:L164-L175）
+</code></pre></details></figure>
+<p>原文依据：<code>constants/outputStyles.ts:137-175</code>。</p>
+<p>getOutputStyleConfig 先检查合并后的强制插件风格，用首个符合项；有多个则记警告。没有强制项才读取 settings.outputStyle，未知名字退回 null。内建 default 正是 null，Explanatory 和 Learning 明确保留工程指令。所谓“选择一个输出风格”因而包含加载、同名覆盖、强制选择和默认回退四个动作（A-39）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/outputStyles.ts:177-211</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/outputStyles.ts#L177-L211">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#008" data-quote-type="C" data-source-range="constants/outputStyles.ts:177-211">// … 省略 8 行（constants/outputStyles.ts:L177-L184）
+  const forcedStyles = Object.values(allStyles).filter(
+    (style): style is OutputStyleConfig =&gt;
+      style !== null &amp;&amp;
+      style.source === &#x27;plugin&#x27; &amp;&amp;
+      style.forceForPlugin === true,
+  )
+// … 省略 21 行（constants/outputStyles.ts:L191-L211）
+</code></pre></details></figure>
+<p>原文依据：<code>constants/outputStyles.ts:177-211</code>。</p>
+<p>磁盘风格的正文成为 trim 后的 prompt；名称可以来自 frontmatter 或文件名，keep-coding-instructions 接受布尔或相应字符串形式。force-for-plugin 在磁盘风格中被警告并忽略。字段名相似不代表所有来源具有同一能力：插件专用字段、磁盘解析和最终选择各要对拍一次（<code>outputStyles/loadOutputStylesDir.ts:13-98</code>）。风格的教学流程留到<a href="05-completion.html">第 5 章</a>详述。</p>
+<h2 id="section-4">配置会变成哪些段</h2>
+<p>语言偏好不是只换界面标签。getLanguageSection 在偏好为空时返回 null，否则生成 Language 标题和一句要求：解释、注释与沟通都使用所选语言，技术词与代码标识符保留原样。输出风格的函数也先查 null，再把名称与完整 prompt 接在标题后。这些参数最后进入文本，模型会收到对应的措辞（A-18）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:142-158</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L142-L158">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#009" data-quote-type="P" data-source-range="constants/prompts.ts:142-158">// … 省略 3 行（constants/prompts.ts:L142-L144）
+  if (!languagePreference) return null
+
+  return `# Language
+Always respond in ${languagePreference}. Use ${languagePreference} for all explanations, comments, and communications with the user. Technical terms and code identifiers should remain in their original form.`
+}
+// … 省略 4 行（constants/prompts.ts:L150-L153）
+  if (outputStyleConfig === null) return null
+
+  return `# Output Style: ${outputStyleConfig.name}
+${outputStyleConfig.prompt}`
+}
+</code></pre></details></figure>
+<p>Environment 段并发取得 Git 与操作系统信息，包含工作目录、额外目录、平台、shell、系统版本、模型与知识截止日期。worktree 会话还追加不要切回主仓库的要求；undercover 条件会抑制模型名。一个看似事实列表的环境段里，因此也有操作约束，不能把它全部归为对话背景数据（A-20）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:651-710</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L651-L710">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#010" data-quote-type="P" data-source-range="constants/prompts.ts:651-710">// … 省略 27 行（constants/prompts.ts:L651-L677）
+    `Primary working directory: ${cwd}`,
+    isWorktree
+      ? `This is a git worktree — an isolated copy of the repository. Run all commands from this directory. Do NOT \`cd\` to the original repository root.`
+      : null,
+// … 省略 29 行（constants/prompts.ts:L682-L710）
+</code></pre></details></figure>
+<p>MCP 的传统指令段只取已连接且有 instructions 的服务器，以名称分小节。delta 路径会检查变化后生成附件，Chrome 的客户端指令还受工具搜索条件控制。服务器“已配置”和“已连接”不同；工具“存在”和“提供 instructions”也不同。最终有没有文字，应沿筛选条件而非服务器列表总数判断（A-21）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:579-604</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L579-L604">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#011" data-quote-type="C" data-source-range="constants/prompts.ts:579-604">// … 省略 1 行（constants/prompts.ts:L579-L579）
+  const connectedClients = mcpClients.filter(
+    (client): client is ConnectedMCPServer =&gt; client.type === &#x27;connected&#x27;,
+  )
+
+  const clientsWithInstructions = connectedClients.filter(
+    client =&gt; client.instructions,
+  )
+// … 省略 18 行（constants/prompts.ts:L587-L604）
+</code></pre></details></figure>
+<p>会话指导同样按可用工具选择。AskUserQuestion 存在才给拒绝后提问的指引，Skill 存在且命令集合非空才给技能调用说明；Agent 的指导也受工具、fork 和内建探索模式约束。缺少某个工具时，提示词不应继续要求调用它，这一点直接写在 enabledTools.has 判断中（<code>constants/prompts.ts:343-400</code>）。该段的缓存与放置原因由下一章解释。</p>
+<p>这些来源回答了不同问题。语言指定表达方式，环境既给状态又给目录约束，风格定义当前任务姿态，服务器 instructions 加外部工具说明，会话指导把可用能力变成下一步建议。它们可以同在一个字符串数组里，却没有共同的生命周期；接下来追消息角色和缓存，必须继续保留来源差别。</p>
+<h2 id="section-5">上下文的消息角色</h2>
+<p>systemContext 的键值通过 appendSystemContext 接到系统数组后面；userContext 经 prependUserContext 包进 system-reminder，创建 isMeta 用户消息，放在历史消息之前。测试环境直接返回原 messages，空上下文也不包装。系统添加的标签、meta 标志与消息 role 是三个不同字段，不能把标签名字当成 system role（A-12）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/api.ts:437-474</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/api.ts#L437-L474">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#012" data-quote-type="P" data-source-range="utils/api.ts:437-474">// … 省略 24 行（utils/api.ts:L437-L460）
+  return [
+    createUserMessage({
+      content: `&lt;system-reminder&gt;\nAs you answer the user&#x27;s questions, you can use the following context:\n${Object.entries(
+        context,
+      )
+        .map(([key, value]) =&gt; `# ${key}\n${value}`)
+        .join(&#x27;\n&#x27;)}
+
+      IMPORTANT: this context may or may not be relevant to your tasks. You should not respond to this context unless it is highly relevant to your task.\n&lt;/system-reminder&gt;\n`,
+      isMeta: true,
+// … 省略 4 行（utils/api.ts:L471-L474）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/api.ts:437-474</code>。</p>
+<p>getUserContext 取得并过滤记忆文件，生成 claudeMd 文本，连同当天日期返回；生成文本还缓存给 auto 分类器。本章由此确认初始指令走 userContext。关闭、bare 和显式目录条件连同发现来源交给<a href="03-instruction-files.html">第 3 章</a>详述（<code>context.ts:152-189</code>），不在请求装配与文件发现两处重复列开关。</p>
+<p>systemContext 另有会话快照性质。Git 状态文本说明它不会持续更新，超过 2000 字符会截断并建议调用 Bash；setSystemPromptInjection 则在改值后清用户与系统上下文缓存。这意味着“当前模型能看到的信息”不必等于此刻磁盘状态；注入点存在，也不代表每次查询都会重新取所有状态（A-14）。</p>
+<figure class="source-quote"><details class="source"><summary><code>context.ts:84-103</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/context.ts#L84-L103">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#013" data-quote-type="P" data-source-range="context.ts:84-103">// … 省略 12 行（context.ts:L84-L95）
+    return [
+      `This is the git status at the start of the conversation. Note that this status is a snapshot in time, and will not update during the conversation.`,
+      `Current branch: ${branch}`,
+      `Main branch (you will usually use this for PRs): ${mainBranch}`,
+      ...(userName ? [`Git user: ${userName}`] : []),
+      `Status:\n${truncatedStatus || &#x27;(clean)&#x27;}`,
+// … 省略 2 行（context.ts:L102-L103）
+</code></pre></details></figure>
+<p>查询循环把这两个装配函数的结果送入模型接口：fullSystemPrompt 来自追加后的 system，messages 来自前置用户上下文后的历史列表，同时传工具、思考配置和中止信号。至此才把“模板里有这句”接成“这条调用将它放在哪个参数”。定位一个输入缺失问题，往往需要沿这个接口回查，而不是继续在模板文件里搜同义句（A-13）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>query.ts:449-451</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L449-L451">核对原文</a></div><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#014" data-quote-type="C" data-source-range="query.ts:449-451">    const fullSystemPrompt = asSystemPrompt(
+      appendSystemContext(systemPrompt, systemContext),
+    )
+</code></pre></div></figure>
+<figure class="source-quote"><details class="source"><summary><code>query.ts:652-665</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L652-L665">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#015" data-quote-type="C" data-source-range="query.ts:652-665">// … 省略 7 行（query.ts:L652-L658）
+          for await (const message of deps.callModel({
+            messages: prependUserContext(messagesForQuery, userContext),
+            systemPrompt: fullSystemPrompt,
+            thinkingConfig: toolUseContext.options.thinkingConfig,
+            tools: toolUseContext.options.tools,
+            signal: toolUseContext.abortController.signal,
+// … 省略 1 行（query.ts:L665-L665）
+</code></pre></details></figure>
+<p>原文依据：<code>query.ts:652-665</code>。</p>
+<h2 id="section-6">API 层还会再加工</h2>
+<p>模型服务调用前，API 层在 system 数组前加归属头和 CLI 前缀，并按条件追加 advisor 或 Chrome 工具搜索指令，然后构造 text 块。Chrome 已连接、工具搜索启用而指令 delta 未启用时才在此注入；另一条路径由附件负责。默认装配函数返回后，数组仍会变化（A-15）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/api/claude.ts:1347-1379</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/api/claude.ts#L1347-L1379">核对原文</a></summary><pre><code class="language-ts" data-block-id="01-prompt-assembly.md#016" data-quote-type="C" data-source-range="services/api/claude.ts:1347-1379">// … 省略 11 行（services/api/claude.ts:L1347-L1357）
+  systemPrompt = asSystemPrompt(
+    [
+      getAttributionHeader(fingerprint),
+      getCLISyspromptPrefix({
+        isNonInteractive: options.isNonInteractiveSession,
+        hasAppendSystemPrompt: options.hasAppendSystemPrompt,
+      }),
+      ...systemPrompt,
+      ...(advisorModel ? [ADVISOR_TOOL_INSTRUCTIONS] : []),
+      ...(injectChromeHere ? [CHROME_TOOL_SEARCH_INSTRUCTIONS] : []),
+    ].filter(Boolean),
+// … 省略 11 行（services/api/claude.ts:L1369-L1379）
+</code></pre></details></figure>
+<p>原文依据：<code>services/api/claude.ts:1347-1379</code>。</p>
+<p>归属头里的 version 取 MACRO.VERSION 加 fingerprint。本树只保存宏的使用点，没有其构建值，因此模型名称、发布日期和注释里的发布计划都不能拿来当产品版本（<code>constants/system.ts:73-95</code>）。研究对象应始终指向这棵树；请求里的归属文本能够解释字段的形状，却不能替缺失的构建信息赋值。</p>
+<p>这一章的终点不是拿到一份“唯一系统提示词”，而是确定从基础输入到最终请求的几次选择。每个早返回、对象展开和数组追加都可能改变模型实际收到的文字。接下来还要问这些材料多久算一次：同一个装配函数再次调用，未必重新读了状态。<a href="02-prompt-cache.html">第 2 章</a>从这条区别进入缓存和会话生命周期。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<span></span>
+<a href="02-prompt-cache.html"><span class="page-direction">&rarr; 下一章</span><span>第 2 章 · 分段缓存与会话生命周期</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

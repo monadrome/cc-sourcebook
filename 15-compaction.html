@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 15 章 · 压缩怎样删内容，又怎样让工作接着走 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html" aria-current="page"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+<ol class="section-list">
+<li><a href="#section-1">先改内容，不能只靠旧 usage 判断压力</a></li>
+<li><a href="#section-2">微压缩删的是结果，不是整条协议关系</a></li>
+<li><a href="#section-3">触发许可与失败计数分别阻止重试</a></li>
+<li><a href="#section-4">摘要的指令合并不代替运行状态保存</a></li>
+<li><a href="#section-5">摘要之外还要重建可执行的会话</a></li>
+<li><a href="#section-6">恢复预算针对不同集合，不能简单相乘相加</a></li>
+<li><a href="#section-7">保留目标要让位于 API 配对</a></li>
+<li><a href="#section-8">提醒总量与硬裁每节不是同一保证</a></li>
+</ol>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html" aria-current="page"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+<ol class="section-list">
+<li><a href="#section-1">先改内容，不能只靠旧 usage 判断压力</a></li>
+<li><a href="#section-2">微压缩删的是结果，不是整条协议关系</a></li>
+<li><a href="#section-3">触发许可与失败计数分别阻止重试</a></li>
+<li><a href="#section-4">摘要的指令合并不代替运行状态保存</a></li>
+<li><a href="#section-5">摘要之外还要重建可执行的会话</a></li>
+<li><a href="#section-6">恢复预算针对不同集合，不能简单相乘相加</a></li>
+<li><a href="#section-7">保留目标要让位于 API 配对</a></li>
+<li><a href="#section-8">提醒总量与硬裁每节不是同一保证</a></li>
+</ol>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">E · 上下文与记忆预算<span>第 15 章</span></p>
+    <h1>压缩怎样删内容，又怎样让工作接着走</h1>
+  </header>
+  <div class="chapter-body"><p>第 14 章区分预算口径，这章读 <code>query.ts:365-426</code>、<code>query.ts:428-468</code> 的缩减次序与 <code>services/compact/compact.ts:330-338</code>、<code>services/compact/compact.ts:518-624</code>、<code>services/compact/compact.ts:723-747</code> 的重建结果。问题不只是“摘要写得够不够”：宿主还须维持消息配对、工具发现和缓存状态。下面沿删除、回退与恢复追踪这些约束，检验哪些内容能省掉，哪些关系必须继续成立。</p>
+<h2 id="section-1">先改内容，不能只靠旧 usage 判断压力</h2>
+<p>query 在摘要前改消息，usage 却来自已经发生的 API 响应。二者不同步，所以删过结果后还需另传释放量；仅看末次 usage，会把被删除的材料继续算在压力里（E-03）。</p>
+<figure class="source-quote"><details class="source"><summary><code>query.ts:365-426</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L365-L426">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#001" data-quote-type="M" data-source-range="query.ts:365-426">// … 省略 4 行（query.ts:L365-L368）
+    // Enforce per-message budget on aggregate tool result size. Runs BEFORE
+    // microcompact — cached MC operates purely by tool_use_id (never inspects
+    // content), so content replacement is invisible to it and the two compose
+    // cleanly. No-ops when contentReplacementState is undefined (feature off).
+// … 省略 54 行（query.ts:L373-L426）
+</code></pre></details></figure>
+<p>原文依据：<code>query.ts:365-426</code>。</p>
+<p>工具结果替换先于按 tool_use_id 操作的微压缩，注释给出组合理由：结果正文改变不影响后者找调用 ID。snip 同时保留 usage 所在尾部，所以把 tokensFreed 单独送后面。消息数组已缩短和估算基准已变小，不是同一个事实。</p>
+<figure class="source-quote"><details class="source"><summary><code>query.ts:428-468</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L428-L468">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#002" data-quote-type="M" data-source-range="query.ts:428-468">    // Project the collapsed context view and maybe commit more collapses.
+    // Runs BEFORE autocompact so that if collapse gets us under the
+    // autocompact threshold, autocompact is a no-op and we keep granular
+    // context instead of a single summary.
+    //
+    // Nothing is yielded — the collapsed view is a read-time projection
+    // over the REPL&#x27;s full history. Summary messages live in the collapse
+    // store, not the REPL array. This is what makes collapses persist
+    // across turns: projectView() replays the commit log on every entry.
+// … 省略 32 行（query.ts:L437-L468）
+</code></pre></details></figure>
+<p>原文依据：<code>query.ts:428-468</code>。</p>
+<p>collapse 在 autocompact 前，可让后者不再触发；注释还说明它只是读时投影，不往 REPL 数组塞同样的摘要。这里能核验的是调用关系，独立实现仍未展开。不能把几个 if 分支解释为每轮执行一串彼此累积的全量摘要。</p>
+<h2 id="section-2">微压缩删的是结果，不是整条协议关系</h2>
+<p>时间门槛要结合 enabled 读。六十分钟与保留五条只是开启后的参数，不能因进程空闲过久就推断它默认已清理（E-09）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/timeBasedMCConfig.ts:18-43</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/timeBasedMCConfig.ts#L18-L43">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#003" data-quote-type="C" data-source-range="services/compact/timeBasedMCConfig.ts:18-43">// … 省略 12 行（services/compact/timeBasedMCConfig.ts:L18-L29）
+const TIME_BASED_MC_CONFIG_DEFAULTS: TimeBasedMCConfig = {
+  enabled: false,
+  gapThresholdMinutes: 60,
+  keepRecent: 5,
+}
+// … 省略 9 行（services/compact/timeBasedMCConfig.ts:L35-L43）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/timeBasedMCConfig.ts:18-43</code>。</p>
+<p>默认 disabled 将整个时间路径挡住；后面的 cached 路径又有另一套特性与模型条件。配置里两个数值不会替代这些入口，microcompact 被调用也可以原样返回。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/microCompact.ts:243-293</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/microCompact.ts#L243-L293">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#004" data-quote-type="C" data-source-range="services/compact/microCompact.ts:243-293">// … 省略 24 行（services/compact/microCompact.ts:L243-L266）
+  const timeBasedResult = maybeTimeBasedMicrocompact(messages, querySource)
+  if (timeBasedResult) {
+    return timeBasedResult
+  }
+// … 省略 23 行（services/compact/microCompact.ts:L271-L293）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/microCompact.ts:243-293</code>。</p>
+<p>时间路径成功会先短路，未发生才继续内部 cache-editing 判断。两种实现因此不是一个默认动作的两步；原样返回也不是压缩失败，它可能只是当前来源或模型不符合条件。下一步要看允许清除什么。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/microCompact.ts:36-50</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/microCompact.ts#L36-L50">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#005" data-quote-type="C" data-source-range="services/compact/microCompact.ts:36-50">// … 省略 4 行（services/compact/microCompact.ts:L36-L39）
+// Only compact these tools
+const COMPACTABLE_TOOLS = new Set&lt;string&gt;([
+  FILE_READ_TOOL_NAME,
+  ...SHELL_TOOL_NAMES,
+  GREP_TOOL_NAME,
+  GLOB_TOOL_NAME,
+  WEB_SEARCH_TOOL_NAME,
+  WEB_FETCH_TOOL_NAME,
+  FILE_EDIT_TOOL_NAME,
+  FILE_WRITE_TOOL_NAME,
+])
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/microCompact.ts:36-50</code>。</p>
+<p>这份集合把能力名称变成清理候选，不把所有工具结果一概视为同样可丢。原消息仍要能解释模型调用了谁，真正替换只发生在命中结果上，而不是把 assistant 的调用记录一起删掉。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/microCompact.ts:422-496</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/microCompact.ts#L422-L496">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#006" data-quote-type="C" data-source-range="services/compact/microCompact.ts:422-496">// … 省略 36 行（services/compact/microCompact.ts:L422-L457）
+  // Floor at 1: slice(-0) returns the full array (paradoxically keeps
+  // everything), and clearing ALL results leaves the model with zero working
+  // context. Neither degenerate is sensible — always keep at least the last.
+  const keepRecent = Math.max(1, config.keepRecent)
+  const keepSet = new Set(compactableIds.slice(-keepRecent))
+  const clearSet = new Set(compactableIds.filter(id =&gt; !keepSet.has(id)))
+// … 省略 33 行（services/compact/microCompact.ts:L464-L496）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/microCompact.ts:422-496</code>。</p>
+<p>ID 留着、正文换占位，说明“工具已调用”和“工具结果还可见”的寿命分开。保留数至少一条，配置零值不会把最近结果全清掉；来源不明也不触发时间路径。后续工作若需旧正文，必须靠已转存信息或回查，不能把占位当原结果摘要。</p>
+<p>API 微压缩是另一个控制入口：客户端设置 context-management，并不在此直接修改本地字符串。先看 thinking 的选择，再看工具清理，避免把二者合成一个总开关（E-11）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/compact/apiMicrocompact.ts:14-32</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/apiMicrocompact.ts#L14-L32">核对原文</a></div><pre><code class="language-ts" data-block-id="15-compaction.md#007" data-quote-type="C" data-source-range="services/compact/apiMicrocompact.ts:14-32">// Default values for context management strategies
+// Match client-side microcompact token values
+const DEFAULT_MAX_INPUT_TOKENS = 180_000 // Typical warning threshold
+const DEFAULT_TARGET_INPUT_TOKENS = 40_000 // Keep last 40k tokens like client-side
+// … 省略 15 行（services/compact/apiMicrocompact.ts:L18-L32）
+</code></pre></div></figure>
+<p>原文依据：<code>services/compact/apiMicrocompact.ts:14-32</code>。</p>
+<p>保留全部 thinking 是默认请求策略，clearAllThinking 又实际保留最后一个 turn，而非名字字面上的“全删”。这类参数须按输出配置解释，不能只凭函数名推断模型下一次完全没有 thinking。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/apiMicrocompact.ts:63-153</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/apiMicrocompact.ts#L63-L153">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#008" data-quote-type="C" data-source-range="services/compact/apiMicrocompact.ts:63-153">// … 省略 14 行（services/compact/apiMicrocompact.ts:L63-L76）
+  // Preserve thinking blocks in previous assistant turns. Skip when
+  // redact-thinking is active — redacted blocks have no model-visible content.
+  // When clearAllThinking is set (&gt;1h idle = cache miss), keep only the last
+  // thinking turn — the API schema requires value &gt;= 1, and omitting the edit
+  // falls back to the model-policy default (often &quot;all&quot;), which wouldn&#x27;t clear.
+  if (hasThinking &amp;&amp; !isRedactThinkingActive) {
+    strategies.push({
+      type: &#x27;clear_thinking_20251015&#x27;,
+      keep: clearAllThinking ? { type: &#x27;thinking_turns&#x27;, value: 1 } : &#x27;all&#x27;,
+    })
+  }
+// … 省略 66 行（services/compact/apiMicrocompact.ts:L88-L153）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/apiMicrocompact.ts:63-153</code>。</p>
+<p>工具清理只在内部用户及环境条件满足时加入；thinking 的策略可以存在而工具策略不加入。trigger 与 keep 是请求目标，也不等于本地已释放对应 token 数。客户端清理、服务器清理和结果投影各有自己的记录，下一轮压力判断必须看哪条路径实际返回了结果。</p>
+<h2 id="section-3">触发许可与失败计数分别阻止重试</h2>
+<p>自动压缩的允许条件把用户关闭、子任务递归和实验策略放在占用阈值前；阈值不是一项无条件运行授权（E-07）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/autoCompact.ts:147-183</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/autoCompact.ts#L147-L183">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#009" data-quote-type="C" data-source-range="services/compact/autoCompact.ts:147-183">// … 省略 22 行（services/compact/autoCompact.ts:L147-L168）
+  // Recursion guards. session_memory and compact are forked agents that
+  // would deadlock.
+  if (querySource === &#x27;session_memory&#x27; || querySource === &#x27;compact&#x27;) {
+    return false
+  }
+// … 省略 10 行（services/compact/autoCompact.ts:L174-L183）
+</code></pre></details></figure>
+<p>笔记维护和 compact fork 不再自动压缩，避免生成摘要的子任务又触发自己的摘要。reactive-only 路径也可拒绝主动触发。这些 early return 表示选择另一策略或跳过，不应全部统计成模型压缩失败。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/compact/autoCompact.ts:185-239</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/autoCompact.ts#L185-L239">核对原文</a></div><pre><code class="language-ts" data-block-id="15-compaction.md#010" data-quote-type="C" data-source-range="services/compact/autoCompact.ts:185-239">// … 省略 40 行（services/compact/autoCompact.ts:L185-L224）
+  const tokenCount = tokenCountWithEstimation(messages) - snipTokensFreed
+  const threshold = getAutoCompactThreshold(model)
+  const effectiveWindow = getEffectiveContextWindowSize(model)
+// … 省略 12 行（services/compact/autoCompact.ts:L228-L239）
+</code></pre></div></figure>
+<p>这里才把占用与释放量对齐，然后比较当前阈值。用户开关、来源条件和窗口压力需一起满足；“占用很高但没主动 compact”可以由前面的策略解释，不能只回算数字指责阈值没生效。</p>
+<p>允许尝试之后，还有针对连续失败的独立断路器。注释记录极端失败次数及 API 浪费，实际限制靠跨轮保存的计数，不靠模型理解一段停止指导（E-08）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/compact/autoCompact.ts:67-70</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/autoCompact.ts#L67-L70">核对原文</a></div><pre><code class="language-ts" data-block-id="15-compaction.md#011" data-quote-type="M" data-source-range="services/compact/autoCompact.ts:67-70">// Stop trying autocompact after this many consecutive failures.
+// BQ 2026-03-10: 1,279 sessions had 50+ consecutive failures (up to 3,272)
+// in a single session, wasting ~250K API calls/day globally.
+const MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES = 3
+</code></pre></div></figure>
+<p>三次是停止继续尝试的次数，不是最多三次一定获得摘要的承诺。必须看入口是否在阈值判断前检查旧计数，以及调用者是否把新的计数传回来。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/autoCompact.ts:253-277</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/autoCompact.ts#L253-L277">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#012" data-quote-type="C" data-source-range="services/compact/autoCompact.ts:253-277">// … 省略 7 行（services/compact/autoCompact.ts:L253-L259）
+  if (
+    tracking?.consecutiveFailures !== undefined &amp;&amp;
+    tracking.consecutiveFailures &gt;= MAX_CONSECUTIVE_AUTOCOMPACT_FAILURES
+  ) {
+    return { wasCompacted: false }
+  }
+// … 省略 12 行（services/compact/autoCompact.ts:L266-L277）
+</code></pre></details></figure>
+<p>已有失败达到上限会连 shouldAutoCompact 都跳过；仍未到阈值也直接返回。二者都可以没有 compactionResult，却代表不同原因。真正生成路径又先尝试笔记，只有不适用才转传统模型摘要。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/autoCompact.ts:287-350</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/autoCompact.ts#L287-L350">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#013" data-quote-type="C" data-source-range="services/compact/autoCompact.ts:287-350">// … 省略 47 行（services/compact/autoCompact.ts:L287-L333）
+  } catch (error) {
+    if (!hasExactErrorMessage(error, ERROR_MESSAGE_USER_ABORT)) {
+      logError(error)
+    }
+    // Increment consecutive failure count for circuit breaker.
+    // The caller threads this through autoCompactTracking so the
+    // next query loop iteration can skip futile retry attempts.
+    const prevFailures = tracking?.consecutiveFailures ?? 0
+    const nextFailures = prevFailures + 1
+// … 省略 8 行（services/compact/autoCompact.ts:L343-L350）
+</code></pre></details></figure>
+<p>笔记成功与传统摘要成功都清旧总结游标并做清理，但返回的字段不完全相同；传统异常才明确增加连续失败计数。不能把笔记路径的 null 直接当一次相同的 API 失败，它是让另一条路径继续的信号。</p>
+<figure class="source-quote"><details class="source"><summary><code>query.ts:534-543</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/query.ts#L534-L543">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#014" data-quote-type="C" data-source-range="query.ts:534-543">      // Continue on with the current query call using the post compact messages
+      messagesForQuery = postCompactMessages
+    } else if (consecutiveFailures !== undefined) {
+      // Autocompact failed — propagate failure count so the circuit breaker
+      // can stop retrying on the next iteration.
+      tracking = {
+        ...(tracking ?? { compacted: false, turnId: &#x27;&#x27;, turnCounter: 0 }),
+        consecutiveFailures,
+      }
+    }
+</code></pre></details></figure>
+<p>调用者把计数写回 tracking，下一轮才记得已经失败；成功后才用重建结果替换 messagesForQuery。没有生成摘要不意味着历史已被删除。模型说明、客户端返回值与实际替换数组的时点，要沿这两端接起来。</p>
+<p>异常处理还有一个容易漏掉的例外：用户中止只跳过错误日志，后面的失败加一仍执行。这里的计数不能窄称为“连续 API 技术故障次数”。它按当前 catch 的返回值跨轮累积，是否记录错误与是否影响断路器是分开的选择（<code>services/compact/autoCompact.ts:287-350</code>）。</p>
+<h2 id="section-4">摘要的指令合并不代替运行状态保存</h2>
+<p>PreCompact 可影响摘要应保留什么，但它返回的指令不是原始对话事件。用户要求与 hook 补充按字符串顺序合并，不能因此声称宿主已逐条裁定两份指令的冲突（E-13）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/compact.ts:374-423</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/compact.ts#L374-L423">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#015" data-quote-type="C" data-source-range="services/compact/compact.ts:374-423">export function mergeHookInstructions(
+  userInstructions: string | undefined,
+  hookInstructions: string | undefined,
+): string | undefined {
+  if (!hookInstructions) return userInstructions || undefined
+  if (!userInstructions) return hookInstructions
+  return `${userInstructions}\n\n${hookInstructions}`
+}
+// … 省略 42 行（services/compact/compact.ts:L382-L423）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/compact.ts:374-423</code>。</p>
+<p>auto/manual 与 customInstructions 随事件传入，用户文本在前、hook 文本在后。这个顺序能重现模型输入，却不决定摘要一定完整保存哪项要求；后面的构造调用才消费合并结果。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/compact/compact.ts:435-443</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/compact.ts#L435-L443">核对原文</a></div><pre><code class="language-ts" data-block-id="15-compaction.md#016" data-quote-type="C" data-source-range="services/compact/compact.ts:435-443">// … 省略 5 行（services/compact/compact.ts:L435-L439）
+    const compactPrompt = getCompactPrompt(customInstructions)
+    const summaryRequest = createUserMessage({
+      content: compactPrompt,
+    })
+</code></pre></div></figure>
+<p>原文依据：<code>services/compact/compact.ts:435-443</code>。</p>
+<p>摘要请求使用合并后的指令，所以“没有自定义摘要要求”只描述用户参数，不表示没有 hook 指令。禁止工具与输出结构见<a href="06-output-and-subtasks.html">第 6 章</a>（<code>services/compact/prompt.ts:12-26</code>、<code>services/compact/prompt.ts:28-44</code>、<code>services/compact/prompt.ts:61-143</code>、<code>services/compact/prompt.ts:269-303</code>），这里开始检查摘要写成后还缺哪些宿主状态。</p>
+<h2 id="section-5">摘要之外还要重建可执行的会话</h2>
+<p>buildPostCompactMessages 把边界、摘要、保留消息和附件分别接回；这里的顺序决定新对话先看到什么，并没有把所有类型压成一个摘要字符串（E-16）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/compact.ts:330-338</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/compact.ts#L330-L338">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#017" data-quote-type="C" data-source-range="services/compact/compact.ts:330-338">export function buildPostCompactMessages(result: CompactionResult): Message[] {
+  return [
+    result.boundaryMarker,
+    ...result.summaryMessages,
+    ...(result.messagesToKeep ?? []),
+    ...result.attachments,
+    ...result.hookResults,
+  ]
+}
+</code></pre></details></figure>
+<p>保留原文和重建附件是摘要外的输入来源，因此摘要字数不能代表整个压缩后占用。真正恢复过程还需重新宣布工具、计划与指令，不能只保留“我已经做过什么”的叙述。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/compact.ts:518-624</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/compact.ts#L518-L624">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#018" data-quote-type="C" data-source-range="services/compact/compact.ts:518-624">// … 省略 85 行（services/compact/compact.ts:L518-L602）
+    // Carry loaded-tool state — the summary doesn&#x27;t preserve tool_reference
+    // blocks, so the post-compact schema filter needs this to keep sending
+    // already-loaded deferred tool schemas to the API.
+    const preCompactDiscovered = extractDiscoveredToolNames(messages)
+    if (preCompactDiscovered.size &gt; 0) {
+      boundaryMarker.compactMetadata.preCompactDiscoveredTools = [
+        ...preCompactDiscovered,
+      ].sort()
+    }
+// … 省略 13 行（services/compact/compact.ts:L612-L624）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/compact.ts:518-624</code>。</p>
+<p>发现工具名被写进 compactMetadata，因为摘要不会保留 tool_reference 协议块；名字出现在自然语言里也无法替 schema 过滤提供这个集合。读文件缓存会清、恢复文件却重新读取，说明已知状态和可编辑视图也要重新建立。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/compact.ts:723-747</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/compact.ts#L723-L747">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#019" data-quote-type="C" data-source-range="services/compact/compact.ts:723-747">    const postCompactHookResult = await executePostCompactHooks(
+      {
+        trigger: isAutoCompact ? &#x27;auto&#x27; : &#x27;manual&#x27;,
+        compactSummary: summary,
+      },
+// … 省略 20 行（services/compact/compact.ts:L728-L747）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/compact.ts:723-747</code>。</p>
+<p>PostCompact 得到摘要并可返回显示消息，但它不替前面的数组装配生成所有附件。这种完成事件与输入恢复分开，能解释为什么压缩结束通知、用户看到的说明和下次 API 的材料不是同一份结果。</p>
+<h2 id="section-6">恢复预算针对不同集合，不能简单相乘相加</h2>
+<p>文件数、单项目标和附件总粗估同时存在；技能另有自己的额度。五份文件乘五千不意味着五万总帽写错，因为单文件读取目标与序列化附件估算的对象不同（E-15）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/compact.ts:122-131</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/compact.ts#L122-L131">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#020" data-quote-type="C" data-source-range="services/compact/compact.ts:122-131">export const POST_COMPACT_MAX_FILES_TO_RESTORE = 5
+export const POST_COMPACT_TOKEN_BUDGET = 50_000
+export const POST_COMPACT_MAX_TOKENS_PER_FILE = 5_000
+// Skills can be large (verify=18.7KB, claude-api=20.1KB). Previously re-injected
+// unbounded on every compact → 5-10K tok/compact. Per-skill truncation beats
+// dropping — instructions at the top of a skill file are usually the critical
+// part. Budget sized to hold ~5 skills at the per-skill cap.
+export const POST_COMPACT_MAX_TOKENS_PER_SKILL = 5_000
+export const POST_COMPACT_SKILLS_TOKEN_BUDGET = 25_000
+// … 省略 1 行（services/compact/compact.ts:L131-L131）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/compact.ts:122-131</code>。</p>
+<p>常量只给候选上限，选哪些文件还要看最近读取及保留消息是否已经包含它们。已在保留尾部出现的路径不该再花恢复额度，这个判断把恢复管线接回消息选择。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/compact.ts:1415-1464</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/compact.ts#L1415-L1464">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#021" data-quote-type="C" data-source-range="services/compact/compact.ts:1415-1464">// … 省略 38 行（services/compact/compact.ts:L1415-L1452）
+  return results.filter((result): result is AttachmentMessage =&gt; {
+    if (result === null) {
+      return false
+    }
+    const attachmentTokens = roughTokenCountEstimation(jsonStringify(result))
+    if (usedTokens + attachmentTokens &lt;= POST_COMPACT_TOKEN_BUDGET) {
+      usedTokens += attachmentTokens
+      return true
+    }
+    return false
+  })
+}
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/compact.ts:1415-1464</code>。</p>
+<p>文件先筛选和读取，再对完整附件的 JSON 粗估累加。这个总帽处理的是构造结果，并不能反推每份原始文件都完整回来了；读取失败或预算不足都可能让某候选缺席。恢复是有选择的补偿，不是历史所有读取的重放。</p>
+<p>超额候选只在 filter 中返回 false，没有中止后续候选检查。因此，最近文件优先并不等于只能保留排序后的一段连续前缀；后面更小的附件仍可能放得下。文件时序决定尝试顺序，大小预算决定保留集合，两种条件在这里共同起效。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/compact.ts:1494-1534</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/compact.ts#L1494-L1534">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#022" data-quote-type="C" data-source-range="services/compact/compact.ts:1494-1534">// … 省略 9 行（services/compact/compact.ts:L1494-L1502）
+  // Sorted most-recent-first so budget pressure drops the least-relevant skills.
+  // Per-skill truncation keeps the head of each file (where setup/usage
+  // instructions typically live) rather than dropping whole skills.
+  let usedTokens = 0
+  const skills = Array.from(invokedSkills.values())
+    .sort((a, b) =&gt; b.invokedAt - a.invokedAt)
+// … 省略 26 行（services/compact/compact.ts:L1509-L1534）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/compact.ts:1494-1534</code>。</p>
+<p>技能正文先按单项目标截，再受独立总额限制；近期技能可保留但其尾部可能不在上下文中。索引发现预算又是第14章另一套对象。转录回查路径保留了进一步找材料的办法（<code>services/compact/prompt.ts:305-374</code>），并没有让被裁部分自动进入新消息。</p>
+<h2 id="section-7">保留目标要让位于 API 配对</h2>
+<p>笔记压缩的 maxTokens 注释称 hard cap，实际算法却在常规取舍后修复消息关系。先保留配置原句，才能看到后面究竟在哪一步扩大范围（E-17）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/sessionMemoryCompact.ts:44-61</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/sessionMemoryCompact.ts#L44-L61">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#023" data-quote-type="C" data-source-range="services/compact/sessionMemoryCompact.ts:44-61">// … 省略 3 行（services/compact/sessionMemoryCompact.ts:L44-L46）
+export type SessionMemoryCompactConfig = {
+  /** Minimum tokens to preserve after compaction */
+  minTokens: number
+  /** Minimum number of messages with text blocks to keep */
+  minTextBlockMessages: number
+  /** Maximum tokens to preserve after compaction (hard cap) */
+  maxTokens: number
+// … 省略 8 行（services/compact/sessionMemoryCompact.ts:L54-L61）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/sessionMemoryCompact.ts:44-61</code>。</p>
+<p>最低 token、最低文本消息数和最高目标不是互相可替代的指标；它们限制不同形态的保留。远端配置只校验各项正数，还没有在这个片段里保证最小与最大关系一致。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/sessionMemoryCompact.ts:98-130</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/sessionMemoryCompact.ts#L98-L130">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#024" data-quote-type="C" data-source-range="services/compact/sessionMemoryCompact.ts:98-130">// … 省略 26 行（services/compact/sessionMemoryCompact.ts:L98-L123）
+    maxTokens:
+      remoteConfig.maxTokens &amp;&amp; remoteConfig.maxTokens &gt; 0
+        ? remoteConfig.maxTokens
+        : DEFAULT_SM_COMPACT_CONFIG.maxTokens,
+  }
+// … 省略 2 行（services/compact/sessionMemoryCompact.ts:L129-L130）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/sessionMemoryCompact.ts:98-130</code>。</p>
+<p>单项有效不代表组合已能同时满足所有愿望。启用选择也独立于大小配置，尤其启用环境变量先于禁用变量；它们同时为真时，当前函数先返回 true，不能概括成“禁用变量总优先”。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/sessionMemoryCompact.ts:403-432</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/sessionMemoryCompact.ts#L403-L432">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#025" data-quote-type="C" data-source-range="services/compact/sessionMemoryCompact.ts:403-432">// … 省略 2 行（services/compact/sessionMemoryCompact.ts:L403-L404）
+  if (isEnvTruthy(process.env.ENABLE_CLAUDE_CODE_SM_COMPACT)) {
+    return true
+  }
+  if (isEnvTruthy(process.env.DISABLE_CLAUDE_CODE_SM_COMPACT)) {
+    return false
+  }
+// … 省略 22 行（services/compact/sessionMemoryCompact.ts:L411-L432）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/sessionMemoryCompact.ts:403-432</code>。</p>
+<p>默认要求两个 gate，但环境启用可绕过这条默认组合；这只允许尝试笔记路径，仍不保证有可用笔记。消息保留的实际范围接下来由已有边界、目标条件与协议修复共同产生。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/sessionMemoryCompact.ts:232-314</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/sessionMemoryCompact.ts#L232-L314">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#026" data-quote-type="C" data-source-range="services/compact/sessionMemoryCompact.ts:232-314">// … 省略 37 行（services/compact/sessionMemoryCompact.ts:L232-L268）
+    for (let i = adjustedIndex - 1; i &gt;= 0 &amp;&amp; neededToolUseIds.size &gt; 0; i--) {
+      const message = messages[i]!
+      if (hasToolUseWithIds(message, neededToolUseIds)) {
+        adjustedIndex = i
+// … 省略 42 行（services/compact/sessionMemoryCompact.ts:L273-L314）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/sessionMemoryCompact.ts:232-314</code>。</p>
+<p>保留区里的 tool_result 会把切点向前拉到缺失 tool_use，同 message.id 的更早分片又可继续扩大。协议完整性因此不是“压到四万后再删除多余一点”，而是允许保留超出普通目标的关系材料。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/sessionMemoryCompact.ts:316-397</code><span>摘录 17 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/sessionMemoryCompact.ts#L316-L397">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#027" data-quote-type="C" data-source-range="services/compact/sessionMemoryCompact.ts:316-397">// … 省略 65 行（services/compact/sessionMemoryCompact.ts:L316-L380）
+    // Stop if we hit the max cap
+    if (totalTokens &gt;= config.maxTokens) {
+      break
+    }
+
+    // Stop if we meet both minimums
+    if (
+      totalTokens &gt;= config.minTokens &amp;&amp;
+      textBlockMessageCount &gt;= config.minTextBlockMessages
+    ) {
+      break
+    }
+  }
+
+  // Adjust for tool pairs
+  return adjustIndexToPreserveAPIInvariants(messages, startIndex)
+}
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/sessionMemoryCompact.ts:316-397</code>。</p>
+<p>普通循环先按总结位置、token 和文本条数选切点，最后才调用前面的修复。hard cap 的张力来自这个真实次序，不应替实现删除修复步骤或替注释改口。构造完仍过大时，还有整条笔记方案的回退检查。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/sessionMemoryCompact.ts:514-630</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/sessionMemoryCompact.ts#L514-L630">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#028" data-quote-type="C" data-source-range="services/compact/sessionMemoryCompact.ts:514-630">// … 省略 40 行（services/compact/sessionMemoryCompact.ts:L514-L553）
+      if (lastSummarizedIndex === -1) {
+        // The summarized message ID doesn&#x27;t exist in current messages
+        // This can happen if messages were modified - fall back to legacy compact
+        // since we can&#x27;t determine the boundary between summarized and unsummarized messages
+        logEvent(&#x27;tengu_sm_compact_summarized_id_not_found&#x27;, {})
+        return null
+      }
+    } else {
+      // Resumed session case: session memory has content but we don&#x27;t know the boundary
+      // Set lastSummarizedIndex to last message so startIndex becomes messages.length (no messages kept initially)
+      lastSummarizedIndex = messages.length - 1
+// … 省略 66 行（services/compact/sessionMemoryCompact.ts:L565-L630）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/sessionMemoryCompact.ts:514-630</code>。</p>
+<p>空笔记、无效总结游标或结果达自动阈值返回 null，交回传统路径；它不会为坚持笔记模式强行截坏配对。恢复会话缺游标又有末条计算的例外，须与“游标存在但已失效”区分。第16章维护游标的安全条件由此有了消费者。</p>
+<h2 id="section-8">提醒总量与硬裁每节不是同一保证</h2>
+<p>两项笔记常量分别支撑总量提醒与节大小判断，并不表明插入前有一个对应的全文件硬裁器（E-23）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/SessionMemory/prompts.ts:8-9</code><span>摘录 2 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/prompts.ts#L8-L9">核对原文</a></div><pre><code class="language-ts" data-block-id="15-compaction.md#029" data-quote-type="C" data-source-range="services/SessionMemory/prompts.ts:8-9">const MAX_SECTION_LENGTH = 2000
+const MAX_TOTAL_SESSION_MEMORY_TOKENS = 12000
+</code></pre></div></figure>
+<p>这些数字先用于向模型要求压缩内容。若模型未遵守，宿主还有下一道措施，但它的检查对象与提醒里的总量未必相同。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/SessionMemory/prompts.ts:161-196</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/prompts.ts#L161-L196">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#030" data-quote-type="P" data-source-range="services/SessionMemory/prompts.ts:161-196">// … 省略 22 行（services/SessionMemory/prompts.ts:L161-L182）
+  if (overBudget) {
+    parts.push(
+      `\n\nCRITICAL: The session memory file is currently ~${totalTokens} tokens, which exceeds the maximum of ${MAX_TOTAL_SESSION_MEMORY_TOKENS} tokens. You MUST condense the file to fit within this budget. Aggressively shorten oversized sections by removing less important details, merging related items, and summarizing older entries. Prioritize keeping &quot;Current State&quot; and &quot;Errors &amp; Corrections&quot; accurate and detailed.`,
+    )
+// … 省略 10 行（services/SessionMemory/prompts.ts:L187-L196）
+</code></pre></details></figure>
+<p>提醒要求优先保存 Current State 和 Errors &amp; Corrections，属于语义取舍。硬裁函数却不比较哪句话重要，只沿标题切节和按字符、行边界保留；两者不能被概括为同一种智能压缩。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/SessionMemory/prompts.ts:249-324</code><span>摘录 18 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/prompts.ts#L249-L324">核对原文</a></summary><pre><code class="language-ts" data-block-id="15-compaction.md#031" data-quote-type="C" data-source-range="services/SessionMemory/prompts.ts:249-324">// … 省略 54 行（services/SessionMemory/prompts.ts:L249-L302）
+  if (!sectionHeader) {
+    return { lines: sectionLines, wasTruncated: false }
+  }
+
+  const sectionContent = sectionLines.join(&#x27;\n&#x27;)
+  if (sectionContent.length &lt;= maxCharsPerSection) {
+    return { lines: [sectionHeader, ...sectionLines], wasTruncated: false }
+  }
+// … 省略 4 行（services/SessionMemory/prompts.ts:L311-L314）
+  for (const line of sectionLines) {
+    if (charCount + line.length + 1 &gt; maxCharsPerSection) {
+      break
+    }
+    keptLines.push(line)
+    charCount += line.length + 1
+  }
+  keptLines.push(&#x27;\n[... section truncated for length ...]&#x27;)
+  return { lines: keptLines, wasTruncated: true }
+}
+</code></pre></details></figure>
+<p>flushSessionSection 没有标题就原样返回，按节裁切也没有实现一万二的整文件硬帽；有标题的过长节则保开头并加标记。这是总量提醒与实际裁切边界的具体差别，最终结果能否用作压缩仍由前面的大小回退判断兜住。</p>
+<p>更具体地说，语义优先级不会改变硬裁的保留方向。即使某节末尾有重要纠正，当前循环也只是累计开头的行，超限即停。提醒要求模型提前整理与最终裁切为何都存在，由此有了实际关系：前者能改变内容安排，后者只能限制已有排列（<code>services/SessionMemory/prompts.ts:249-324</code>）。</p>
+<p>重装还要清外层用户上下文缓存，具体生命周期见<a href="02-prompt-cache.html">第 2 章</a>（<code>services/compact/postCompactCleanup.ts:12-64</code>、<code>commands/clear/caches.ts:47-84</code>、<code>commands/clear/conversation.ts:124-130</code>、<code>utils/claudemd.ts:1042-1086</code>、<code>utils/claudemd.ts:1088-1130</code>）。恢复附件、清快照和保存游标各维护不同关系。压缩到此仍是当前会话的继续；下一章将这套有限材料的保存职责与跨会话记忆分开。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="14-budgets.html"><span class="page-direction">&larr; 上一章</span><span>第 14 章 · 窗口、字符与 token：几种预算各算什么</span></a>
+<a href="16-memory.html"><span class="page-direction">&rarr; 下一章</span><span>第 16 章 · 从当前会话笔记到跨会话记忆</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

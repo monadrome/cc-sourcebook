@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 16 章 · 从当前会话笔记到跨会话记忆 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html" aria-current="page"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+<ol class="section-list">
+<li><a href="#section-1">会话笔记的触发还受当前工作阶段约束</a></li>
+<li><a href="#section-2">fork 的权限限定了笔记能改哪里</a></li>
+<li><a href="#section-3">开关与目录覆盖接受不同来源</a></li>
+<li><a href="#section-4">入口是索引，也会裁掉正文</a></li>
+<li><a href="#section-5">类型分类与保存标准不是同一道检查</a></li>
+<li><a href="#section-6">检索先删候选，再让模型选</a></li>
+<li><a href="#section-7">换注入方式，并没有把全部预算合并</a></li>
+<li><a href="#section-8">抽取的运行权与记录去重另行处理</a></li>
+<li><a href="#section-9">团队共享给同一类型再加一道范围</a></li>
+<li><a href="#section-10">能写进目录，不等于能写任何内容</a></li>
+<li><a href="#section-11">同步契约让删除与冲突有不同后果</a></li>
+<li><a href="#section-12">长驻日志与共享索引并不叠加</a></li>
+</ol>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html" aria-current="page"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+<ol class="section-list">
+<li><a href="#section-1">会话笔记的触发还受当前工作阶段约束</a></li>
+<li><a href="#section-2">fork 的权限限定了笔记能改哪里</a></li>
+<li><a href="#section-3">开关与目录覆盖接受不同来源</a></li>
+<li><a href="#section-4">入口是索引，也会裁掉正文</a></li>
+<li><a href="#section-5">类型分类与保存标准不是同一道检查</a></li>
+<li><a href="#section-6">检索先删候选，再让模型选</a></li>
+<li><a href="#section-7">换注入方式，并没有把全部预算合并</a></li>
+<li><a href="#section-8">抽取的运行权与记录去重另行处理</a></li>
+<li><a href="#section-9">团队共享给同一类型再加一道范围</a></li>
+<li><a href="#section-10">能写进目录，不等于能写任何内容</a></li>
+<li><a href="#section-11">同步契约让删除与冲突有不同后果</a></li>
+<li><a href="#section-12">长驻日志与共享索引并不叠加</a></li>
+</ol>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">E · 上下文与记忆预算<span>第 16 章</span></p>
+    <h1>从当前会话笔记到跨会话记忆</h1>
+  </header>
+  <div class="chapter-body"><p>最后一章从 <code>services/SessionMemory/sessionMemory.ts:76-93</code>、<code>services/SessionMemory/sessionMemoryUtils.ts:18-36</code>、<code>services/SessionMemory/sessionMemory.ts:134-181</code>、<code>services/SessionMemory/sessionMemory.ts:240-298</code>、<code>services/SessionMemory/sessionMemory.ts:357-375</code> 的会话笔记走到 <code>memdir/paths.ts:21-55</code>、<code>memdir/paths.ts:79-90</code>、<code>memdir/paths.ts:95-150</code>、<code>memdir/paths.ts:152-205</code>、<code>memdir/paths.ts:223-235</code> 的持久目录。关键区别不在名字，而在三个决定：哪种材料值得留、谁能写、下次怎样进入上下文。下面逐层检验这些决定，避免把“目录里已经有记忆”当成“后台正在更新”，或把“本地已删除”当成“共享服务已经遗忘”。</p>
+<h2 id="section-1">会话笔记的触发还受当前工作阶段约束</h2>
+<p>会话笔记并不跟随自动记忆的默认开关。它先有自己的 gate，而且读取缓存配置；这里的立即返回只是避免等待配置，并不授予抽取权限。先看这一入口，才能解释为什么有持久目录的会话仍可能不维护笔记（E-20）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/SessionMemory/sessionMemory.ts:76-93</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/sessionMemory.ts#L76-L93">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#001" data-quote-type="C" data-source-range="services/SessionMemory/sessionMemory.ts:76-93">// … 省略 4 行（services/SessionMemory/sessionMemory.ts:L76-L79）
+function isSessionMemoryGateEnabled(): boolean {
+  return getFeatureValue_CACHED_MAY_BE_STALE(&#x27;tengu_session_memory&#x27;, false)
+}
+// … 省略 11 行（services/SessionMemory/sessionMemory.ts:L83-L93）
+</code></pre></div></figure>
+<p>原文依据：<code>services/SessionMemory/sessionMemory.ts:76-93</code>。</p>
+<p>默认 false 与 may be stale 同时出现，说明“未运行”可能来自功能选择，而不是没有可记内容。阈值配置回答的是开启后何时更新，无法倒过来使这个 gate 变成 true。下一块配置因此应按调度参数读，不当启用证据。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/SessionMemory/sessionMemoryUtils.ts:18-36</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/sessionMemoryUtils.ts#L18-L36">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#002" data-quote-type="C" data-source-range="services/SessionMemory/sessionMemoryUtils.ts:18-36">// … 省略 14 行（services/SessionMemory/sessionMemoryUtils.ts:L18-L31）
+export const DEFAULT_SESSION_MEMORY_CONFIG: SessionMemoryConfig = {
+  minimumMessageTokensToInit: 10000,
+  minimumTokensBetweenUpdate: 5000,
+  toolCallsBetweenUpdates: 3,
+}
+</code></pre></details></figure>
+<p>原文依据：<code>services/SessionMemory/sessionMemoryUtils.ts:18-36</code>。</p>
+<p>这里量的是当前窗口及其增长，不是累计调用消耗。大量重复工作未必产生相应窗口增长；反过来，一段很长的用户材料可能增加窗口，却没有增加工具调用。源码分别保留这两种量，后面的布尔式才决定它们怎样配合。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/SessionMemory/sessionMemory.ts:134-181</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/sessionMemory.ts#L134-L181">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#003" data-quote-type="C" data-source-range="services/SessionMemory/sessionMemory.ts:134-181">// … 省略 34 行（services/SessionMemory/sessionMemory.ts:L134-L167）
+  const shouldExtract =
+    (hasMetTokenThreshold &amp;&amp; hasMetToolCallThreshold) ||
+    (hasMetTokenThreshold &amp;&amp; !hasToolCallsInLastTurn)
+// … 省略 11 行（services/SessionMemory/sessionMemory.ts:L171-L181）
+</code></pre></div></figure>
+<p>原文依据：<code>services/SessionMemory/sessionMemory.ts:134-181</code>。</p>
+<p>增长条件在两个分支里都必须满足，工具次数却可由自然停顿替代。因此，三次工具调用不会单独触发抽取，“没有工具调用”也不是无条件记笔记。真正的例外是：窗口已有足够新材料时，可以在安全停点更新，不必为了凑次数再调用工具。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/SessionMemory/sessionMemory.ts:240-298</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/sessionMemory.ts#L240-L298">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#004" data-quote-type="C" data-source-range="services/SessionMemory/sessionMemory.ts:240-298">// … 省略 37 行（services/SessionMemory/sessionMemory.ts:L240-L276）
+  // Only run session memory on main REPL thread
+  if (querySource !== &#x27;repl_main_thread&#x27;) {
+    // Don&#x27;t log this - it&#x27;s expected for subagents, teammates, etc.
+    return
+  }
+// … 省略 17 行（services/SessionMemory/sessionMemory.ts:L282-L298）
+</code></pre></details></figure>
+<p>原文依据：<code>services/SessionMemory/sessionMemory.ts:240-298</code>。</p>
+<p>远端配置零值不会把门槛清零，配置只初始化一次；hook 执行时则重新查缓存 gate，并要求 querySource 完全等于主线程名称。配置稳定与功能是否运行由不同判断承担。还要再问一次：这个 hook 在当前环境中是否已注册？</p>
+<figure class="source-quote"><details class="source"><summary><code>services/SessionMemory/sessionMemory.ts:357-375</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/sessionMemory.ts#L357-L375">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#005" data-quote-type="C" data-source-range="services/SessionMemory/sessionMemory.ts:357-375">// … 省略 12 行（services/SessionMemory/sessionMemory.ts:L357-L368）
+  if (!autoCompactEnabled) {
+    return
+  }
+
+  // Register hook unconditionally - gate check happens lazily when hook runs
+  registerPostSamplingHook(extractSessionMemory)
+}
+</code></pre></details></figure>
+<p>原文依据：<code>services/SessionMemory/sessionMemory.ts:357-375</code>。</p>
+<p>自动压缩关闭或远程环境会在注册前返回，而 gate 在执行时懒检查。这是两道不同入口：注册过不等于每轮抽取，执行 gate 开了也无法补回一个没注册的 hook。笔记服务当前压缩的用途，在这条注册依赖上比一个 memory 名称更明确。</p>
+<h2 id="section-2">fork 的权限限定了笔记能改哪里</h2>
+<p>调度只决定何时运行，fork 参数才接上编辑环境。读取状态单独传入而共享缓存安全参数，意味着后台需要既能编辑已知文件，又不直接变更父上下文的状态；“只做笔记”接下来还有实际回调约束（E-21）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/SessionMemory/sessionMemory.ts:309-325</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/sessionMemory.ts#L309-L325">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#006" data-quote-type="C" data-source-range="services/SessionMemory/sessionMemory.ts:309-325">// … 省略 6 行（services/SessionMemory/sessionMemory.ts:L309-L314）
+  // Run session memory extraction using runForkedAgent for prompt caching
+  // runForkedAgent creates an isolated context to prevent mutation of parent state
+  // Pass setupContext.readFileState so the forked agent can edit the memory file
+  await runForkedAgent({
+    promptMessages: [createUserMessage({ content: userPrompt })],
+    cacheSafeParams: createCacheSafeParams(context),
+    canUseTool: createMemoryFileCanUseTool(memoryPath),
+// … 省略 4 行（services/SessionMemory/sessionMemory.ts:L322-L325）
+</code></pre></details></figure>
+<p>原文依据：<code>services/SessionMemory/sessionMemory.ts:309-325</code>。</p>
+<p>独立读取状态解决编辑前置材料，canUseTool 决定操作范围，两者不能互相替代。即便笔记正文完整摆在 prompt 中，工具仍须通过回调；反过来，allow 也不自动补齐编辑所需的读取状态。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/SessionMemory/sessionMemory.ts:457-495</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/sessionMemory.ts#L457-L495">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#007" data-quote-type="C" data-source-range="services/SessionMemory/sessionMemory.ts:457-495">// … 省略 6 行（services/SessionMemory/sessionMemory.ts:L457-L462）
+      tool.name === FILE_EDIT_TOOL_NAME &amp;&amp;
+      typeof input === &#x27;object&#x27; &amp;&amp;
+      input !== null &amp;&amp;
+      &#x27;file_path&#x27; in input
+    ) {
+      const filePath = input.file_path
+      if (typeof filePath === &#x27;string&#x27; &amp;&amp; filePath === memoryPath) {
+        return { behavior: &#x27;allow&#x27; as const, updatedInput: input }
+// … 省略 25 行（services/SessionMemory/sessionMemory.ts:L471-L495）
+</code></pre></details></figure>
+<p>原文依据：<code>services/SessionMemory/sessionMemory.ts:457-495</code>。</p>
+<p>路径是字符串完全相等，不是“在笔记目录里都可以”；工具必须是 Edit，新建别的文件或改同目录资料仍被拒绝。成功抽取后的游标还等到末尾无工具调用才更新，维护的是保留消息的配对关系。笔记写完和历史可以安全切开，不被当成同一个时点。</p>
+<p>笔记模板的来源排除与标题保护见<a href="06-output-and-subtasks.html">第 6 章</a>（<code>services/SessionMemory/prompts.ts:43-80</code>、<code>services/SessionMemory/prompts.ts:111-129</code>）。自定义 prompt 能替换文字，却不在这个回调里放宽文件范围；内容协议与操作权限各自留下了边界。</p>
+<h2 id="section-3">开关与目录覆盖接受不同来源</h2>
+<p>自动记忆的 settings 排在环境判断后。项目配置不能盖过显式环境选择；尤其是名为 DISABLE 的变量取显式 falsy 时，会提前开启并跳过后面的 SIMPLE、远程持久目录和 settings 分支。这比笼统说“bare 总关记忆”更窄（E-24）。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/paths.ts:21-55</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/paths.ts#L21-L55">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#008" data-quote-type="C" data-source-range="memdir/paths.ts:21-55">// … 省略 10 行（memdir/paths.ts:L21-L30）
+  const envVal = process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY
+  if (isEnvTruthy(envVal)) {
+    return false
+  }
+  if (isEnvDefinedFalsy(envVal)) {
+    return true
+  }
+// … 省略 18 行（memdir/paths.ts:L38-L55）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/paths.ts:21-55</code>。</p>
+<p>这段先判断“能不能用”，没有决定“存到哪里”。环境选择覆盖了功能开关，也不等于给所有路径来源同样的信任。下一块先选择基础目录，其后才处理完整目录的覆盖，两个层级不能混读。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/paths.ts:79-90</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/paths.ts#L79-L90">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#009" data-quote-type="C" data-source-range="memdir/paths.ts:79-90">// … 省略 6 行（memdir/paths.ts:L79-L84）
+export function getMemoryBaseDir(): string {
+  if (process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR) {
+    return process.env.CLAUDE_CODE_REMOTE_MEMORY_DIR
+  }
+  return getClaudeConfigHomeDir()
+}
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/paths.ts:79-90</code>。</p>
+<p>remote 变量在此直接提供 base，而不是交给下面的完整路径覆盖校验。当前引文不能证明每个目录入口都走相同验证；完整目录的安全规则，应准确限定在 validateMemoryPath 的调用者上。否则会把一处检查外推成所有来源的保证。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/paths.ts:95-150</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/paths.ts#L95-L150">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#010" data-quote-type="M" data-source-range="memdir/paths.ts:95-150">// … 省略 22 行（memdir/paths.ts:L95-L116）
+  // Settings.json paths support ~/ expansion (user-friendly). The env var
+  // override does not (it&#x27;s set programmatically by Cowork/SDK, which should
+  // always pass absolute paths). Bare &quot;~&quot;, &quot;~/&quot;, &quot;~/.&quot;, &quot;~/..&quot;, etc. are NOT
+  // expanded — they would make isAutoMemPath() match all of $HOME or its
+  // parent (same class of danger as &quot;/&quot; or &quot;C:\&quot;).
+// … 省略 29 行（memdir/paths.ts:L122-L150）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/paths.ts:95-150</code>。</p>
+<p>拒绝根目录、近根和可退到 home 的 ~ 余部，不只是处理格式好不好看。它避免一个过宽目录让路径范围判定接受原本不该归为记忆的文件；注释明确把校验与读写豁免联系起来。随后哪些配置有权提供这个目录，就成为授权问题。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/paths.ts:152-205</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/paths.ts#L152-L205">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#011" data-quote-type="M" data-source-range="memdir/paths.ts:152-205">// … 省略 20 行（memdir/paths.ts:L152-L171）
+ * SECURITY: projectSettings (.claude/settings.json committed to the repo) is
+ * intentionally excluded — a malicious repo could otherwise set
+ * autoMemoryDirectory: &quot;~/.ssh&quot; and gain silent write access to sensitive
+ * directories via the filesystem.ts write carve-out (which fires when
+ * isAutoMemPath() matches and hasAutoMemPathOverride() is false). This follows
+ * the same pattern as hasSkipDangerousModePermissionPrompt() etc.
+// … 省略 28 行（memdir/paths.ts:L178-L205）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/paths.ts:152-205</code>。</p>
+<p>项目可以通过前面的 autoMemoryEnabled 选择是否使用功能，却不能用 projectSettings 选择写入根。这里信任的是特定覆盖来源，不是整个 settings 系统。canonical git root 又让多个 worktree 指向同一默认存储身份，持久目录故意不随临时工作目录逐个分裂。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/paths.ts:223-235</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/paths.ts#L223-L235">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#012" data-quote-type="C" data-source-range="memdir/paths.ts:223-235">// … 省略 2 行（memdir/paths.ts:L223-L224）
+    const override = getAutoMemPathOverride() ?? getAutoMemPathSetting()
+    if (override) {
+      return override
+    }
+// … 省略 7 行（memdir/paths.ts:L229-L235）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/paths.ts:223-235</code>。</p>
+<p>实际路径先取完整覆盖，再走项目默认，memoize 的键却仍是 projectRoot。目录解析、项目身份和会话 cwd 是不同概念；不能仅因切到 worktree 就推断它得到新的私人记忆。至此才有可读取的入口，接着还需限制入口装入多少内容。</p>
+<h2 id="section-4">入口是索引，也会裁掉正文</h2>
+<p>二百行不能限制超长单行，命名为 BYTES 的第二个限制实际又用字符串 length。这里最重要的是确定被限制的对象：入口内容经 trim 和裁切，再追加告警；数值不等于最终包装后上下文的严格上限（E-25）。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/memdir.ts:34-103</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memdir.ts#L34-L103">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#013" data-quote-type="C" data-source-range="memdir/memdir.ts:34-103">// … 省略 24 行（memdir/memdir.ts:L34-L57）
+  const trimmed = raw.trim()
+  const contentLines = trimmed.split(&#x27;\n&#x27;)
+  const lineCount = contentLines.length
+  const byteCount = trimmed.length
+// … 省略 42 行（memdir/memdir.ts:L62-L103）
+</code></pre></details></figure>
+<p>行裁切和长度裁切串行执行，统计告警却依据原始长度；模型可能只看到部分索引，仍被告知为何裁掉。长单行没有可用换行时还可直接在长度边界切开。“入口一直加载”因此只表示尝试注入这份索引，不表示每个指针都被看见。</p>
+<p>保存说明让主题文件放正文，入口只放简短指针（<code>memdir/memdir.ts:218-257</code>、<code>memdir/memoryTypes.ts:258-271</code>）。这与裁切不是两条互不相关的规范：细节若直接挤进入口，就与发现其他主题的指针争同一份有限材料。接下来类型规则决定哪些信息值得占这个位置。</p>
+<h2 id="section-5">类型分类与保存标准不是同一道检查</h2>
+<p>类型解析故意允许缺失或未知 type 的旧文件继续工作。类型集合在这里帮助识别，却没有把所有非枚举文件判为不可读；“四种类型”不能解释成磁盘内容必须严格满足四种新格式（E-27）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>memdir/memoryTypes.ts:14-31</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memoryTypes.ts#L14-L31">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#014" data-quote-type="M" data-source-range="memdir/memoryTypes.ts:14-31">// … 省略 10 行（memdir/memoryTypes.ts:L14-L23）
+ * Parse a raw frontmatter value into a MemoryType.
+ * Invalid or missing values return undefined — legacy files without a
+ * `type:` field keep working, files with unknown types degrade gracefully.
+// … 省略 5 行（memdir/memoryTypes.ts:L27-L31）
+</code></pre></div></figure>
+<p>原文依据：<code>memdir/memoryTypes.ts:14-31</code>。</p>
+<p>返回 undefined 保留了兼容阅读路径，而保存提示词仍教模型按已知类型组织新材料。解析器能接受文件，与模型该怎样写文件之间有明确差别，下一块文本负责后一个问题。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/memoryTypes.ts:113-178</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memoryTypes.ts#L113-L178">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#015" data-quote-type="P" data-source-range="memdir/memoryTypes.ts:113-178">// … 省略 20 行（memdir/memoryTypes.ts:L113-L132）
+  &#x27;    &lt;name&gt;feedback&lt;/name&gt;&#x27;,
+  &#x27;    &lt;description&gt;Guidance the user has given you about how to approach work — both what to avoid and what to keep doing. These are a very important type of memory to read and write as they allow you to remain coherent and responsive to the way you should approach work in the project. Record from failure AND success: if you only save corrections, you will avoid past mistakes but drift away from approaches the user has already validated, and may grow overly cautious.&lt;/description&gt;&#x27;,
+  &#x27;    &lt;when_to_save&gt;Any time the user corrects your approach (&quot;no not that&quot;, &quot;don\&#x27;t&quot;, &quot;stop doing X&quot;) OR confirms a non-obvious approach worked (&quot;yes exactly&quot;, &quot;perfect, keep doing that&quot;, accepting an unusual choice without pushback). Corrections are easy to notice; confirmations are quieter — watch for them. In both cases, save what is applicable to future conversations, especially if surprising or not obvious from the code. Include *why* so you can judge edge cases later.&lt;/when_to_save&gt;&#x27;,
+  &#x27;    &lt;how_to_use&gt;Let these memories guide your behavior so that the user does not need to offer the same guidance twice.&lt;/how_to_use&gt;&#x27;,
+  &#x27;    &lt;body_structure&gt;Lead with the rule itself, then a **Why:** line (the reason the user gave — often a past incident or strong preference) and a **How to apply:** line (when/where this guidance kicks in). Knowing *why* lets you judge edge cases instead of blindly following the rule.&lt;/body_structure&gt;&#x27;,
+// … 省略 41 行（memdir/memoryTypes.ts:L138-L178）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/memoryTypes.ts:113-178</code>。</p>
+<p>feedback 同时保存纠正和被用户确认的做法，避免把未来协作仅写成禁令清单；project 要求保留原因，并把相对日期变成绝对日期。reference 存寻找当前信息的指针，而非复制远端快照。分类在这里安排未来使用方式，不只是给检索附一个标签。</p>
+<p>保存标准又会排除看似符合类型的内容。尤其是 project 不是“所有项目事实”，仍须排掉代码或 git 能重建的材料；即使用户说 remember，也要按这份提示判断保存对象（E-28）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>memdir/memoryTypes.ts:180-195</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memoryTypes.ts#L180-L195">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#016" data-quote-type="P" data-source-range="memdir/memoryTypes.ts:180-195">// … 省略 12 行（memdir/memoryTypes.ts:L180-L191）
+  // H2: explicit-save gate. Eval-validated (memory-prompt-iteration case 3,
+  // 0/2 → 3/3): prevents &quot;save this week&#x27;s PR list&quot; → activity-log noise.
+  &#x27;These exclusions apply even when the user explicitly asks you to save. If they ask you to save a PR list or activity summary, ask what was *surprising* or *non-obvious* about it — that is the part worth keeping.&#x27;,
+]
+</code></pre></div></figure>
+<p>原文依据：<code>memdir/memoryTypes.ts:180-195</code>。</p>
+<p>这与“用户要求就记住”存在实际张力：原句限制直接保存 PR 列表、活动摘要等，要求找其中非显然信息。它没有取消用户请求，而是重新界定应留下的内容。这里是提示词的取舍，不能误写成文件工具在运行时检查了每条记忆是否可由代码推出。</p>
+<p>回忆也不是保存后永远启用。用户要求忽略记忆时，文本要求连引用、比较和提及都避免；入口已加载与内容允许影响当前任务，被分成了两个问题（E-29）。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/memoryTypes.ts:197-222</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memoryTypes.ts#L197-L222">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#017" data-quote-type="P" data-source-range="memdir/memoryTypes.ts:197-222">// … 省略 21 行（memdir/memoryTypes.ts:L197-L217）
+  &#x27;- When memories seem relevant, or the user references prior-conversation work.&#x27;,
+  &#x27;- You MUST access memory when the user explicitly asks you to check, recall, or remember.&#x27;,
+  &#x27;- If the user says to *ignore* or *not use* memory: proceed as if MEMORY.md were empty. Do not apply remembered facts, cite, compare against, or mention memory content.&#x27;,
+  MEMORY_DRIFT_CAVEAT,
+]
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/memoryTypes.ts:197-222</code>。</p>
+<p>这是模型如何使用材料的限制，不是磁盘删除操作。“忽略本轮记忆”和“忘记这条持久信息”应分别解释，否则一句忽略请求会被扩大成破坏存储。真正使用旧内容时，还要与当前观察核对。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/memoryTypes.ts:224-256</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memoryTypes.ts#L224-L256">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#018" data-quote-type="P" data-source-range="memdir/memoryTypes.ts:224-256">// … 省略 23 行（memdir/memoryTypes.ts:L224-L246）
+  &#x27;A memory that names a specific function, file, or flag is a claim that it existed *when the memory was written*. It may have been renamed, removed, or never merged. Before recommending it:&#x27;,
+  &#x27;&#x27;,
+  &#x27;- If the memory names a file path: check the file exists.&#x27;,
+  &#x27;- If the memory names a function or flag: grep for it.&#x27;,
+  &#x27;- If the user is about to act on your recommendation (not just asking about history), verify first.&#x27;,
+  &#x27;&#x27;,
+  &#x27;&quot;The memory says X exists&quot; is not the same as &quot;X exists now.&quot;&#x27;,
+// … 省略 3 行（memdir/memoryTypes.ts:L254-L256）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/memoryTypes.ts:224-256</code>。</p>
+<p>当前源码和环境优先于历史记忆，具体文件、函数或 flag 的推荐要验证存在。保存标准排除可重建快照，召回标准又要求检查现状，两者共同阻止旧状态悄悄替代现在的证据。reference 的“去哪找”在这里也比“曾经是什么”更符合用途。</p>
+<h2 id="section-6">检索先删候选，再让模型选</h2>
+<p>扫描器先按修改时间收窄到二百份，相关性模型没有机会从整棵目录任意发现内容。前三十行的描述是否足够，因而影响候选呈现；这是元数据筛选与后续语义选择接在一起的接口（E-30）。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/memoryScan.ts:13-94</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memoryScan.ts#L13-L94">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#019" data-quote-type="M" data-source-range="memdir/memoryScan.ts:13-94">// … 省略 17 行（memdir/memoryScan.ts:L13-L29）
+ * Single-pass: readFileInRange stats internally and returns mtimeMs, so we
+ * read-then-sort rather than stat-sort-read. For the common case (N ≤ 200)
+ * this halves syscalls vs a separate stat round; for large N we read a few
+ * extra small files but still avoid the double-stat on the surviving 200.
+ */
+// … 省略 60 行（memdir/memoryScan.ts:L35-L94）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/memoryScan.ts:13-94</code>。</p>
+<p>代码先读小范围再排序，并非只对最早挑出的二百份做 I/O；注释给的是减少重复 stat 的理由。结果上限与扫描成本不能混为一谈。空列表也可能是读取失败，不能用它宣称用户没有记忆或记忆无相关性。</p>
+<p>模型选择的目标是明确有帮助，而不是见到名字相近就塞满五个位置。活跃工具的常规参考可跳过，警告和已知问题却保留；相同关键词在两类材料里有不同意义（E-31）。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/findRelevantMemories.ts:18-24</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/findRelevantMemories.ts#L18-L24">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#020" data-quote-type="P" data-source-range="memdir/findRelevantMemories.ts:18-24">// … 省略 2 行（memdir/findRelevantMemories.ts:L18-L19）
+Return a list of filenames for the memories that will clearly be useful to Claude Code as it processes the user&#x27;s query (up to 5). Only include memories that you are certain will be helpful based on their name and description.
+- If you are unsure if a memory will be useful in processing the user&#x27;s query, then do not include it in your list. Be selective and discerning.
+- If there are no memories in the list that would clearly be useful, feel free to return an empty list.
+- If a list of recently-used tools is provided, do not select memories that are usage reference or API documentation for those tools (Claude Code is already exercising them). DO still select memories containing warnings, gotchas, or known issues about those tools — active use is exactly when those matter.
+`
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/findRelevantMemories.ts:18-24</code>。</p>
+<p>这个例外把“现在已会调用”与“现在更需要看风险提示”区分开。它收窄的只是模型推荐规则，没有将风险文件设为必选；输出结构和文件白名单还要由下一段代码处理。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/findRelevantMemories.ts:77-141</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/findRelevantMemories.ts#L77-L141">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#021" data-quote-type="C" data-source-range="memdir/findRelevantMemories.ts:77-141">// … 省略 34 行（memdir/findRelevantMemories.ts:L77-L110）
+        schema: {
+          type: &#x27;object&#x27;,
+          properties: {
+            selected_memories: { type: &#x27;array&#x27;, items: { type: &#x27;string&#x27; } },
+          },
+          required: [&#x27;selected_memories&#x27;],
+          additionalProperties: false,
+// … 省略 24 行（memdir/findRelevantMemories.ts:L118-L141）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/findRelevantMemories.ts:77-141</code>。</p>
+<p>schema 只要求字符串数组，没有 maxItems；白名单也只剔除不在候选里的文件名，并不证明模型遵守五项限制。硬数量边界要在消费这些推荐的附件层寻找，不能用前面的文字要求或 JSON 形式代替它。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/attachments.ts:2226-2242</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/attachments.ts#L2226-L2242">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#022" data-quote-type="C" data-source-range="utils/attachments.ts:2226-2242">// … 省略 5 行（utils/attachments.ts:L2226-L2230）
+  const selected = allResults
+    .flat()
+    .filter(m =&gt; !readFileState.has(m.path) &amp;&amp; !alreadySurfaced.has(m.path))
+    .slice(0, 5)
+// … 省略 8 行（utils/attachments.ts:L2235-L2242）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/attachments.ts:2226-2242</code>。</p>
+<p>这里才在跨目录结果汇总后 slice 五个，并过滤已经读取或展示的路径。它约束本次注入，而非每个选择器调用各自五项的总和。另一次引用同一消费点，接着说明索引实验如何把入口替换成这条路径。</p>
+<h2 id="section-7">换注入方式，并没有把全部预算合并</h2>
+<p>索引关闭不是自动记忆关闭。filterInjectedMemoryFiles 只按实验 gate 去掉 AutoMem/TeamMem；人工指令文件仍在集合里，相关文件又可能经另一种附件进来（E-32）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:1136-1151</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L1136-L1151">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#023" data-quote-type="C" data-source-range="utils/claudemd.ts:1136-1151">// … 省略 9 行（utils/claudemd.ts:L1136-L1144）
+  const skipMemoryIndex = getFeatureValue_CACHED_MAY_BE_STALE(
+    &#x27;tengu_moth_copse&#x27;,
+    false,
+  )
+  if (!skipMemoryIndex) return files
+  return files.filter(f =&gt; f.type !== &#x27;AutoMem&#x27; &amp;&amp; f.type !== &#x27;TeamMem&#x27;)
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/claudemd.ts:1136-1151</code>。</p>
+<p>默认 false 时沿用入口索引；true 时改用相关性路径。下面的限制要按新路径计算，不能直接复用入口 MEMORY.md 的长度帽，因为被注入的现在是主题文件正文。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/attachments.ts:269-277</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/attachments.ts#L269-L277">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#024" data-quote-type="M" data-source-range="utils/attachments.ts:269-277">const MAX_MEMORY_LINES = 200
+// Line cap alone doesn&#x27;t bound size (200 × 500-char lines = 100KB).  The
+// surfacer injects up to 5 files per turn via &lt;system-reminder&gt;, bypassing
+// the per-message tool-result budget, so a tight per-file byte cap keeps
+// aggregate injection bounded (5 × 4KB = 20KB/turn).  Enforced via
+// readFileInRange&#x27;s truncateOnByteLimit option.  Truncation means the
+// most-relevant memory still surfaces: the frontmatter + opening context
+// is usually what matters.
+const MAX_MEMORY_BYTES = 4096
+</code></pre></details></figure>
+<p>注释里的五份乘四KB只是正文规模说明。工具结果预算不覆盖这些 system-reminder 附件，故另加字节限制；但它尚未计入告警和来源头。文件选择、正文读取和消息包装仍是三步。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/attachments.ts:2196-2242</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/attachments.ts#L2196-L2242">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#025" data-quote-type="C" data-source-range="utils/attachments.ts:2196-2242">// … 省略 10 行（utils/attachments.ts:L2196-L2205）
+  const memoryDirs = extractAgentMentions(input).flatMap(mention =&gt; {
+    const agentType = mention.replace(&#x27;agent-&#x27;, &#x27;&#x27;)
+    const agentDef = agents.find(def =&gt; def.agentType === agentType)
+    return agentDef?.memory
+      ? [getAgentMemoryDir(agentType, agentDef.memory)]
+      : []
+  })
+  const dirs = memoryDirs.length &gt; 0 ? memoryDirs : [getAutoMemPath()]
+// … 省略 29 行（utils/attachments.ts:L2214-L2242）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/attachments.ts:2196-2242</code>。</p>
+<p>多个目录并行选择后才合并截数，agent 被点名时还会按其记忆目录隔离。前面索引是否注入的 gate 不负责这些隔离与去重；看到索引消失，不能据此判断哪个 agent 的文件会被召回。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/attachments.ts:2268-2321</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/attachments.ts#L2268-L2321">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#026" data-quote-type="C" data-source-range="utils/attachments.ts:2268-2321">// … 省略 34 行（utils/attachments.ts:L2268-L2301）
+        const truncated =
+          result.totalLines &gt; MAX_MEMORY_LINES || result.truncatedByBytes
+        const content = truncated
+          ? result.content +
+            `\n\n&gt; This memory file was truncated (${result.truncatedByBytes ? `${MAX_MEMORY_BYTES} byte limit` : `first ${MAX_MEMORY_LINES} lines`}). Use the ${FILE_READ_TOOL_NAME} tool to view the complete file at: ${filePath}`
+          : result.content
+// … 省略 14 行（utils/attachments.ts:L2308-L2321）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/attachments.ts:2268-2321</code>。</p>
+<p>读取正文先裁切，返回内容再追加完整文件路径的告警并另给 header。因此4096字节不是最终附件整段硬帽；源码保留回查路径，是允许读者发现“这只是部分内容”的补偿。裁掉的后半段并未凭空保存在模型可见文字里。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/attachments.ts:2355-2404</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/attachments.ts#L2355-L2404">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#027" data-quote-type="C" data-source-range="utils/attachments.ts:2355-2404">// … 省略 22 行（utils/attachments.ts:L2355-L2376）
+  const input = getUserMessageText(lastUserMessage)
+  // Single-word prompts lack enough context for meaningful term extraction
+  if (!input || !/\s/.test(input.trim())) {
+    return undefined
+  }
+// … 省略 23 行（utils/attachments.ts:L2382-L2404）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/attachments.ts:2355-2404</code>。</p>
+<p>预取还要求真实用户消息、多词输入和会话预算；meta 注入不作为新的查询意图。即使索引已按 gate 关闭，本轮仍可能没有预取材料，比如只有单词输入。关闭入口与本次一定有替代附件并不等价，这是切换协议里应保留的空结果路径。</p>
+<h2 id="section-8">抽取的运行权与记录去重另行处理</h2>
+<p>有自动记忆功能，不等于每个合格轮次都启动抽取。内部运行先节流，再扫 manifest；缓存共享要求工具列表稳定，真正操作范围交给 canUseTool。这里先展示执行体，下一块再看包在它外面的启用判断（E-33）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/extractMemories/extractMemories.ts:362-431</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/extractMemories/extractMemories.ts#L362-L431">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#028" data-quote-type="C" data-source-range="services/extractMemories/extractMemories.ts:362-431">// … 省略 62 行（services/extractMemories/extractMemories.ts:L362-L423）
+        // Well-behaved extractions complete in 2-4 turns (read → write).
+        // A hard cap prevents verification rabbit-holes from burning turns.
+        maxTurns: 5,
+      })
+
+      // Advance the cursor only after a successful run. If the agent errors
+      // out (caught below), the cursor stays put so those messages are
+      // reconsidered on the next extraction.
+</code></pre></details></figure>
+<p>原文依据：<code>services/extractMemories/extractMemories.ts:362-431</code>。</p>
+<p>五轮限制是执行器给 fork 的上限，不是提示词估计“两到四轮”已经实现。manifest 放在节流之后，跳过的轮次不必扫目录；成功才前进的游标又给失败保留重试材料。入口本身还有一套独立 gate。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/extractMemories/extractMemories.ts:527-568</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/extractMemories/extractMemories.ts#L527-L568">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#029" data-quote-type="C" data-source-range="services/extractMemories/extractMemories.ts:527-568">// … 省略 9 行（services/extractMemories/extractMemories.ts:L527-L535）
+    if (!getFeatureValue_CACHED_MAY_BE_STALE(&#x27;tengu_passport_quail&#x27;, false)) {
+      if (process.env.USER_TYPE === &#x27;ant&#x27; &amp;&amp; !hasLoggedGateFailure) {
+        hasLoggedGateFailure = true
+        logEvent(&#x27;tengu_extract_memories_gate_disabled&#x27;, {})
+      }
+      return
+    }
+// … 省略 26 行（services/extractMemories/extractMemories.ts:L543-L568）
+</code></pre></details></figure>
+<p>原文依据：<code>services/extractMemories/extractMemories.ts:527-568</code>。</p>
+<p>默认关闭抽取、关闭自动记忆、子 agent 或远程环境都在 runExtraction 前返回；当前已有抽取时只保存最新待处理上下文。这说明默认开启目录功能与默认开启后台执行分离，也避免把多个同源请求说成各起一份独立 fork。</p>
+<p>主 agent 的直接写调用还可让后台认为同一范围已处理。这里判断的材料是 assistant tool_use，不是目录当前内容，也不是“用户是否提过记忆”（E-34）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/extractMemories/extractMemories.ts:112-148</code><span>摘录 3 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/extractMemories/extractMemories.ts#L112-L148">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#030" data-quote-type="M" data-source-range="services/extractMemories/extractMemories.ts:112-148">// … 省略 1 行（services/extractMemories/extractMemories.ts:L112-L112）
+ * Returns true if any assistant message after the cursor UUID contains a
+ * Write/Edit tool_use block targeting an auto-memory path.
+ *
+// … 省略 33 行（services/extractMemories/extractMemories.ts:L116-L148）
+</code></pre></div></figure>
+<p>原文依据：<code>services/extractMemories/extractMemories.ts:112-148</code>。</p>
+<p>函数不在此消费对应 tool_result，所以“写过”应准确读成调用记录命中，不能外推为已确认写入成功。这是当前证据中一个重要范围限制；后台怎样响应这个布尔结果，要继续看游标处理。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/extractMemories/extractMemories.ts:329-360</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/extractMemories/extractMemories.ts#L329-L360">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#031" data-quote-type="C" data-source-range="services/extractMemories/extractMemories.ts:329-360">// … 省略 23 行（services/extractMemories/extractMemories.ts:L329-L351）
+      const lastMessage = messages.at(-1)
+      if (lastMessage?.uuid) {
+        lastMemoryMessageUuid = lastMessage.uuid
+      }
+// … 省略 5 行（services/extractMemories/extractMemories.ts:L356-L360）
+</code></pre></details></figure>
+<p>原文依据：<code>services/extractMemories/extractMemories.ts:329-360</code>。</p>
+<p>命中后不仅跳过 fork，还把游标推进到范围末尾，不会下轮把这段重新当新材料。去重判断因此影响后续覆盖范围，而非只省一次运行。它以调用记录作依据，与上一段“抽取失败保留游标”走不同分支，不能合称所有失败都自动重试。</p>
+<p>读取许可也不等于可以把读到的全部内容存进去。权限回调能放 Read/Grep/Glob，文本却限制只从最近消息抽取、不得继续查源码；这两层分别限制操作能力与材料用途（E-35）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/extractMemories/extractMemories.ts:166-222</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/extractMemories/extractMemories.ts#L166-L222">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#032" data-quote-type="C" data-source-range="services/extractMemories/extractMemories.ts:166-222">// … 省略 29 行（services/extractMemories/extractMemories.ts:L166-L194）
+    if (tool.name === BASH_TOOL_NAME) {
+      const parsed = tool.inputSchema.safeParse(input)
+      if (parsed.success &amp;&amp; tool.isReadOnly(parsed.data)) {
+        return { behavior: &#x27;allow&#x27; as const, updatedInput: input }
+      }
+// … 省略 23 行（services/extractMemories/extractMemories.ts:L200-L222）
+</code></pre></details></figure>
+<p>原文依据：<code>services/extractMemories/extractMemories.ts:166-222</code>。</p>
+<p>与会话笔记的单文件 Edit 相比，这里可广泛读、在记忆范围内写，但 shell 仍须 parse 成功且 isReadOnly。REPL 的 allow 又靠注释所说的内部原语回调重新检查。不能把“包装器允许”解释成绕过内部写入限制，也不能用可读范围替文本的保存标准授权。</p>
+<h2 id="section-9">团队共享给同一类型再加一道范围</h2>
+<p>团队记忆依赖自动记忆，却没有沿用它的默认 true；存在团队目录也不足以证明共享启用。先看父开关和团队 gate，再谈每种类型放哪一边（E-37）。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/teamMemPaths.ts:66-94</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/teamMemPaths.ts#L66-L94">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#033" data-quote-type="C" data-source-range="memdir/teamMemPaths.ts:66-94">// … 省略 7 行（memdir/teamMemPaths.ts:L66-L72）
+export function isTeamMemoryEnabled(): boolean {
+  if (!isAutoMemoryEnabled()) {
+    return false
+  }
+  return getFeatureValue_CACHED_MAY_BE_STALE(&#x27;tengu_herring_clock&#x27;, false)
+}
+// … 省略 16 行（memdir/teamMemPaths.ts:L79-L94）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/teamMemPaths.ts:66-94</code>。</p>
+<p>这个依赖只回答功能能否运行，不决定一份 feedback 是否可共享。下面类型规则在已启用的功能内继续细分，用户画像不能因为整个项目合作就自动变成团队资产。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>memdir/memoryTypes.ts:37-106</code><span>摘录 1 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memoryTypes.ts#L37-L106">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#034" data-quote-type="P" data-source-range="memdir/memoryTypes.ts:37-106">// … 省略 22 行（memdir/memoryTypes.ts:L37-L58）
+  &#x27;    &lt;scope&gt;default to private. Save as team only when the guidance is clearly a project-wide convention that every contributor should follow (e.g., a testing policy, a build invariant), not a personal style preference.&lt;/scope&gt;&#x27;,
+// … 省略 47 行（memdir/memoryTypes.ts:L60-L106）
+</code></pre></div></figure>
+<p>原文依据：<code>memdir/memoryTypes.ts:37-106</code>。</p>
+<p>user 必须私人；feedback 的团队共识例外、project/reference 的通常范围都由用途而非文件名决定。关键词“通常”保留了模型判断，不能把它译成解析器自动搬目录。写入地点选好后，每个范围还需自己的入口。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>memdir/teamMemPrompts.ts:43-93</code><span>摘录 1 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/teamMemPrompts.ts#L43-L93">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#035" data-quote-type="P" data-source-range="memdir/teamMemPrompts.ts:43-93">// … 省略 35 行（memdir/teamMemPrompts.ts:L43-L77）
+    &#x27;- You MUST avoid saving sensitive data within shared team memories. For example, never save API keys or user credentials.&#x27;,
+// … 省略 15 行（memdir/teamMemPrompts.ts:L79-L93）
+</code></pre></div></figure>
+<p>原文依据：<code>memdir/teamMemPrompts.ts:43-93</code>。</p>
+<p>两份索引分别维护，使私人材料不必靠共享入口发现；禁止凭据入团队是内容要求，不是目录授权已经完成的工作。随后 dispatch 又证明，团队模式不会无条件叠在所有记忆提示上。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>memdir/memdir.ts:448-473</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memdir.ts#L448-L473">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#036" data-quote-type="C" data-source-range="memdir/memdir.ts:448-473">  if (feature(&#x27;TEAMMEM&#x27;)) {
+    if (teamMemPaths!.isTeamMemoryEnabled()) {
+      const autoDir = getAutoMemPath()
+      const teamDir = teamMemPaths!.getTeamMemPath()
+// … 省略 22 行（memdir/memdir.ts:L452-L473）
+</code></pre></div></figure>
+<p>原文依据：<code>memdir/memdir.ts:448-473</code>。</p>
+<p>实际装配先检查团队条件，再返回普通自动记忆提示。文本中的保存体系由这次分支选择，不能因证据库里两份说明都存在就认为模型同时收到它们。共享材料的写入还要再看路径与内容检查。</p>
+<h2 id="section-10">能写进目录，不等于能写任何内容</h2>
+<p>字符串范围检查拦明显越界，真实路径检查拦符号链接逃逸；后者补的是前者无法表达的目标位置。两步同在写路径校验里，不靠模型自报“这是团队目录”（E-38）。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/teamMemPaths.ts:222-256</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/teamMemPaths.ts#L222-L256">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#037" data-quote-type="C" data-source-range="memdir/teamMemPaths.ts:222-256">// … 省略 24 行（memdir/teamMemPaths.ts:L222-L245）
+  // Second pass: resolve symlinks on the deepest existing ancestor and verify
+  // the real path is still within the real team dir. This catches symlink-based
+  // escapes that path.resolve() alone cannot detect.
+  const realPath = await realpathDeepestExisting(resolvedPath)
+  if (!(await isRealPathWithinTeamDir(realPath))) {
+    throw new PathTraversalError(
+      `Path escapes team memory directory via symlink: &quot;${filePath}&quot;`,
+    )
+// … 省略 3 行（memdir/teamMemPaths.ts:L254-L256）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/teamMemPaths.ts:222-256</code>。</p>
+<p>这里证明最终目标仍落在 team 下，却没有证明正文适合共享。路径合格只让内容到达下一道检查，故“已有记忆写权限”不能覆盖凭据禁令。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/teamMemorySync/teamMemSecretGuard.ts:3-44</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/teamMemorySync/teamMemSecretGuard.ts#L3-L44">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#038" data-quote-type="P" data-source-range="services/teamMemorySync/teamMemSecretGuard.ts:3-44">// … 省略 33 行（services/teamMemorySync/teamMemSecretGuard.ts:L3-L35）
+    const labels = matches.map(m =&gt; m.label).join(&#x27;, &#x27;)
+    return (
+      `Content contains potential secrets (${labels}) and cannot be written to team memory. ` +
+      &#x27;Team memory is shared with all repository collaborators. &#x27; +
+      &#x27;Remove the sensitive content and try again.&#x27;
+    )
+// … 省略 3 行（services/teamMemorySync/teamMemSecretGuard.ts:L42-L44）
+</code></pre></details></figure>
+<p>原文依据：<code>services/teamMemorySync/teamMemSecretGuard.ts:3-44</code>。</p>
+<p>秘密 guard 在 TEAMMEM 下查看拟写文本，命中直接返回拒绝说明。它阻止这一内容写入，不是撤销目录长期许可。上传层还会再扫，因为它不能假定每个本地文件都曾经过同一个工具验证入口。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/teamMemorySync/index.ts:562-617</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/teamMemorySync/index.ts#L562-L617">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#039" data-quote-type="M" data-source-range="services/teamMemorySync/index.ts:562-617"> * PSR M22174: Each file is scanned for credentials before inclusion
+ * using patterns from gitleaks. Files containing secrets are SKIPPED
+ * (not uploaded) and collected in skippedSecrets so the caller can
+ * warn the user.
+// … 省略 52 行（services/teamMemorySync/index.ts:L566-L617）
+</code></pre></div></figure>
+<p>原文依据：<code>services/teamMemorySync/index.ts:562-617</code>。</p>
+<p>上传跳过整文件而不是只删匹配片段；本地存在因此不表示已同步到队友。只纳常规文件、跳大文件也会让两边集合不同。前面的保存指令、写入验证与上传选择对不同对象作判断，不能压成“team 下所有文件自动共享”。</p>
+<h2 id="section-11">同步契约让删除与冲突有不同后果</h2>
+<p>服务注释同时给 pull、push 与删除语义：两边都叫同步，不代表冲突时用同一种优先级。先保留这个契约，后面的客户端条件再解释何时会调用它（E-39）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/teamMemorySync/index.ts:1-25</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/teamMemorySync/index.ts#L1-L25">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#040" data-quote-type="M" data-source-range="services/teamMemorySync/index.ts:1-25">// … 省略 13 行（services/teamMemorySync/index.ts:L1-L13）
+ * Sync semantics:
+ *   - Pull overwrites local files with server content (server wins per-key).
+ *   - Push uploads only keys whose content hash differs from serverChecksums
+ *     (delta upload). Server uses upsert: keys not in the PUT are preserved.
+ *   - File deletions do NOT propagate: deleting a local file won&#x27;t remove it
+ *     from the server, and the next pull will restore it locally.
+// … 省略 6 行（services/teamMemorySync/index.ts:L20-L25）
+</code></pre></details></figure>
+<p>原文依据：<code>services/teamMemorySync/index.ts:1-25</code>。</p>
+<p>pull 按 key 服务端胜出，push 只 upsert 差异项，没有发送的 key 保留。删除本地文件因此不会表达远端删除；下次拉取还能恢复。用户要求“忘掉团队记忆”时，不能把一个本地 rm 的成功当已完成远端遗忘。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/teamMemorySync/index.ts:149-161</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/teamMemorySync/index.ts#L149-L161">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#041" data-quote-type="C" data-source-range="services/teamMemorySync/index.ts:149-161">// … 省略 7 行（services/teamMemorySync/index.ts:L149-L155）
+  return Boolean(
+    tokens?.accessToken &amp;&amp;
+      tokens.scopes?.includes(CLAUDE_AI_INFERENCE_SCOPE) &amp;&amp;
+      tokens.scopes.includes(CLAUDE_AI_PROFILE_SCOPE),
+  )
+// … 省略 1 行（services/teamMemorySync/index.ts:L161-L161）
+</code></pre></details></figure>
+<p>原文依据：<code>services/teamMemorySync/index.ts:149-161</code>。</p>
+<p>OAuth scope 在这里是一种服务身份要求，不是任意 token 非空就够。它也不替代类型范围和秘密检查：身份能访问共享服务，与这份材料值得上传仍是不同许可。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>services/teamMemorySync/watcher.ts:252-319</code><span>摘录 2 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/teamMemorySync/watcher.ts#L252-L319">核对原文</a></div><pre><code class="language-ts" data-block-id="16-memory.md#042" data-quote-type="M" data-source-range="services/teamMemorySync/watcher.ts:252-319">// … 省略 18 行（services/teamMemorySync/watcher.ts:L252-L269）
+  // Initial pull from server (runs before the watcher starts, so its disk
+  // writes won&#x27;t trigger schedulePush)
+// … 省略 48 行（services/teamMemorySync/watcher.ts:L272-L319）
+</code></pre></div></figure>
+<p>原文依据：<code>services/teamMemorySync/watcher.ts:252-319</code>。</p>
+<p>watcher 先拉取再监听，又查构建特性、团队开关和 GitHub 仓库。单纯开目录监听不足以复现同步。接下来冲突重试还要解释为何 push 可保留本地编辑，而前面的 pull 却强调服务端胜出。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/teamMemorySync/index.ts:869-888</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/teamMemorySync/index.ts#L869-L888">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#043" data-quote-type="M" data-source-range="services/teamMemorySync/index.ts:869-888">// … 省略 3 行（services/teamMemorySync/index.ts:L869-L871）
+ * Uses delta upload: only keys whose local content hash differs from
+ * serverChecksums are included in the PUT. On 412 conflict, probes
+ * GET ?view=hashes to refresh serverChecksums, recomputes the delta
+ * (naturally excluding keys where a teammate&#x27;s push matches ours),
+ * and retries. No merge, no disk writes — server-only new keys from
+ * a teammate&#x27;s concurrent push propagate on the next pull.
+// … 省略 11 行（services/teamMemorySync/index.ts:L878-L888）
+</code></pre></details></figure>
+<p>原文依据：<code>services/teamMemorySync/index.ts:869-888</code>。</p>
+<p>冲突重试先刷新服务端校验和，再重算本地差异；本地当前编辑仍可覆盖同 key，但不合并文件正文。与 pull 的服务端优先并不矛盾：它们是不同操作方向。与此同时，“本地删除”没有作为 key 删除指令加入，所以这个重试也不能替删除传播补出一个保证。</p>
+<h2 id="section-12">长驻日志与共享索引并不叠加</h2>
+<p>日记分支把当轮新材料改写到按日追加的日志，让夜间流程维护主题与索引。值得留意的是日期来源：注释说缓存段不在午夜失效，要靠 date_change 附件；正文却让模型从 currentDate 取日期（E-40）。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/memdir.ts:318-370</code><span>摘录 15 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memdir.ts#L318-L370">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#044" data-quote-type="P" data-source-range="memdir/memdir.ts:318-370">// … 省略 14 行（memdir/memdir.ts:L318-L331）
+  // date_change attachment (appended at the tail on midnight rollover) rather
+  // than the user-context message — the latter is intentionally left stale to
+  // preserve the prompt cache prefix across midnight.
+  const logPathPattern = join(memoryDir, &#x27;logs&#x27;, &#x27;YYYY&#x27;, &#x27;MM&#x27;, &#x27;YYYY-MM-DD.md&#x27;)
+
+  const lines: string[] = [
+    &#x27;# auto memory&#x27;,
+    &#x27;&#x27;,
+    `You have a persistent, file-based memory system found at: \`${memoryDir}\``,
+    &#x27;&#x27;,
+    &quot;This session is long-lived. As you work, record anything worth remembering by **appending** to today&#x27;s daily log file:&quot;,
+    &#x27;&#x27;,
+    `\`${logPathPattern}\``,
+    &#x27;&#x27;,
+    &quot;Substitute today&#x27;s date (from `currentDate` in your context) for `YYYY-MM-DD`. When the date rolls over mid-session, start appending to the new day&#x27;s file.&quot;,
+// … 省略 24 行（memdir/memdir.ts:L347-L370）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/memdir.ts:318-370</code>。</p>
+<p>这是一处必须保留的文字张力，不能替源码选择一个统一说法。上下文日期有更新附件与静态前缀两个位置，作者注释明确说后者有意留旧；当前指令如何指代“今日”，不能只照正文中的一个标识符解释。另一方面，追加日志和改索引本就是两份不同写职责。</p>
+<figure class="source-quote"><details class="source"><summary><code>memdir/memdir.ts:419-438</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/memdir/memdir.ts#L419-L438">核对原文</a></summary><pre><code class="language-ts" data-block-id="16-memory.md#045" data-quote-type="M" data-source-range="memdir/memdir.ts:419-438">// … 省略 8 行（memdir/memdir.ts:L419-L426）
+  // KAIROS daily-log mode takes precedence over TEAMMEM: the append-only
+  // log paradigm does not compose with team sync (which expects a shared
+  // MEMORY.md that both sides read + write). Gating on `autoEnabled` here
+  // means the !autoEnabled case falls through to the tengu_memdir_disabled
+  // telemetry block below, matching the non-KAIROS path.
+// … 省略 7 行（memdir/memdir.ts:L432-L438）
+</code></pre></details></figure>
+<p>原文依据：<code>memdir/memdir.ts:419-438</code>。</p>
+<p>KAIROS 先返回，所以不会继续叠加团队提示；注释说追加日志方式不能与双边共同读写索引直接组合。拥有同一持久目录并没有消除协议差别。全书最后回到这个判断：要解释一种记忆行为，先找到当前选择的保存和召回协议，再核对授权、内容与同步，不用一个 memory 总标签替代各条分支。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="15-compaction.html"><span class="page-direction">&larr; 上一章</span><span>第 15 章 · 压缩怎样删内容，又怎样让工作接着走</span></a>
+<span></span>
+</nav>
+</article>
+</main>
+</body>
+</html>

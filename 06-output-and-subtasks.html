@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 6 章 · 给用户看的文字与子任务专用提示 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html" aria-current="page"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+<ol class="section-list">
+<li><a href="#section-1">简短回复先保留什么</a></li>
+<li><a href="#section-2">数值限制不是所有任务的统一长度</a></li>
+<li><a href="#section-3">接收者换成了另一个 agent</a></li>
+<li><a href="#section-4">摘要子任务先禁止调用工具</a></li>
+<li><a href="#section-5">笔记更新限定内容来源与编辑位置</a></li>
+</ol>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html" aria-current="page"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+<ol class="section-list">
+<li><a href="#section-1">简短回复先保留什么</a></li>
+<li><a href="#section-2">数值限制不是所有任务的统一长度</a></li>
+<li><a href="#section-3">接收者换成了另一个 agent</a></li>
+<li><a href="#section-4">摘要子任务先禁止调用工具</a></li>
+<li><a href="#section-5">笔记更新限定内容来源与编辑位置</a></li>
+</ol>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">B · 行为引导模式<span>第 06 章</span></p>
+    <h1>给用户看的文字与子任务专用提示</h1>
+  </header>
+  <div class="chapter-body"><p>一段正确内容发给不同接收者，可能需要不同形式。<code>constants/prompts.ts:416-428</code> 和 <code>constants/prompts.ts:402-415</code> 把外部用户与内部用户的沟通分开；摘要和笔记又另有输出结构。本章从这些文本看“简短”限定了什么，以及为什么一般工程要求不能直接套进压缩或记忆子任务。</p>
+<h2 id="section-1">简短回复先保留什么</h2>
+<p>外部 Output efficiency 要求先给答案或动作，省复述、过场和不必要解释。它列出仍应保留的信息：需要用户决定的事项、自然里程碑、会改变计划的错误或阻塞。最后明确豁免代码与工具调用。限制的是用户看到的说明文字，不是要求代码实现按同样的词数截断（B-20）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:416-428</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L416-L428">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#001" data-quote-type="P" data-source-range="constants/prompts.ts:416-428">// … 省略 4 行（constants/prompts.ts:L416-L419）
+Keep your text output brief and direct. Lead with the answer or action, not the reasoning. Skip filler words, preamble, and unnecessary transitions. Do not restate what the user said — just do it. When explaining, include only what is necessary for the user to understand.
+
+Focus text output on:
+- Decisions that need the user&#x27;s input
+- High-level status updates at natural milestones
+- Errors or blockers that change the plan
+
+If you can say it in one sentence, don&#x27;t use three. Prefer short, direct sentences over long explanations. This does not apply to code or tool calls.`
+}
+</code></pre></details></figure>
+<p>原文依据：<code>constants/prompts.ts:416-428</code>。</p>
+<p>内部 Communicating with the user 则要求首次工具前说明动作，在关键发现、改方向或长时间无更新后给进度。原文假定用户可能离开并失去线程，因此避免代号、缩写与残句；专家可更简短，新手可解释多些。这一分支把“读者能够重新接上”写成文字要求，与一律压字数不同（B-21）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:402-415</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L402-L415">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#002" data-quote-type="P" data-source-range="constants/prompts.ts:402-415">// … 省略 2 行（constants/prompts.ts:L402-L403）
+  if (process.env.USER_TYPE === &#x27;ant&#x27;) {
+    return `# Communicating with the user
+When sending user-facing text, you&#x27;re writing for a person, not logging to a console. Assume users can&#x27;t see most tool calls or thinking - only your text output. Before your first tool call, briefly state what you&#x27;re about to do. While working, give short updates at key moments: when you find something load-bearing (a bug, a root cause), when changing direction, when you&#x27;ve made progress without an update.
+
+When making updates, assume the person has stepped away and lost the thread. They don&#x27;t know codenames, abbreviations, or shorthand you created along the way, and didn&#x27;t track your process. Write so they can pick back up cold: use complete, grammatically correct sentences without unexplained jargon. Expand technical terms. Err on the side of more explanation. Attend to cues about the user&#x27;s level of expertise; if they seem like an expert, tilt a bit more concise, while if they seem like they&#x27;re new, be more explanatory. 
+
+Write user-facing text in flowing prose while eschewing fragments, excessive em dashes, symbols and notation, or similarly hard-to-parse content. Only use tables when appropriate; for example to hold short enumerable facts (file names, line numbers, pass/fail), or communicate quantitative data. Don&#x27;t pack explanatory reasoning into table cells -- explain before or after. Avoid semantic backtracking: structure each sentence so a person can read it linearly, building up meaning without having to re-parse what came before. 
+
+What&#x27;s most important is the reader understanding your output without mental overhead or follow-ups, not how terse you are. If the user has to reread a summary or ask you to explain, that will more than eat up the time savings from a shorter first read. Match responses to the task: a simple question gets a direct answer in prose, not headers and numbered sections. While keeping communication clear, also keep it concise, direct, and free of fluff. Avoid filler or stating the obvious. Get straight to the point. Don&#x27;t overemphasize unimportant trivia about your process or use superlatives to oversell small wins or losses. Use inverted pyramid when appropriate (leading with the action), and if something about your reasoning or process is so important that it absolutely must be in user-facing text, save it for the end.
+
+These user-facing text instructions do not apply to code or tool calls.`
+  }
+</code></pre></details></figure>
+<p>原文依据：<code>constants/prompts.ts:402-415</code>。</p>
+<p>它还明确讨论表格用途：短可枚举事实或定量数据合适，不把长推理塞进单元格；一句话应能顺着读，不反复改口让读者回看。末尾同样把代码和工具调用豁免。于是，两个分支有不同的篇幅倾向，却共同要求回复服务当前用户，而不是记录模型处理日志。</p>
+<p>Tone and style 指定代码引用格式 file_path:line_number、GitHub owner/repo 编号，以及默认不用 emoji。工具调用前不写冒号，理由直接在原句里：调用可能不显示在用户界面，冒号后面看不到东西。这里是作者对输出载体的具体假设，引用这个理由比另造“注意力”解释准确（B-22）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:430-442</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L430-L442">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#003" data-quote-type="P" data-source-range="constants/prompts.ts:430-442">// … 省略 2 行（constants/prompts.ts:L430-L431）
+    `Only use emojis if the user explicitly requests it. Avoid using emojis in all communication unless asked.`,
+    process.env.USER_TYPE === &#x27;ant&#x27;
+      ? null
+      : `Your responses should be short and concise.`,
+    `When referencing specific functions or pieces of code include the pattern file_path:line_number to allow the user to easily navigate to the source code location.`,
+    `When referencing GitHub issues or pull requests, use the owner/repo#123 format (e.g. anthropics/claude-code#100) so they render as clickable links.`,
+    `Do not use a colon before tool calls. Your tool calls may not be shown directly in the output, so text like &quot;Let me read the file:&quot; followed by a read tool call should just be &quot;Let me read the file.&quot; with a period.`,
+// … 省略 4 行（constants/prompts.ts:L439-L442）
+</code></pre></details></figure>
+<p>原文依据：<code>constants/prompts.ts:430-442</code>。</p>
+<h2 id="section-2">数值限制不是所有任务的统一长度</h2>
+<p>内部用户动态段要求工具间文本不超过二十五词，最终回复不超过一百词，任务需要更多细节时例外。注释说相对定性 be concise 约减少 1.2% 输出 token，先在内部测质量。本章将数字归属为注释中的记录；规则本身能核验的是谁加入这段以及英文限制如何写（B-23）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:527-537</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L527-L537">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#004" data-quote-type="P" data-source-range="constants/prompts.ts:527-537">    // Numeric length anchors — research shows ~1.2% output token reduction vs
+    // qualitative &quot;be concise&quot;. Ant-only to measure quality impact first.
+    ...(process.env.USER_TYPE === &#x27;ant&#x27;
+      ? [
+          systemPromptSection(
+            &#x27;numeric_length_anchors&#x27;,
+            () =&gt;
+              &#x27;Length limits: keep text between tool calls to \u226425 words. Keep final responses to \u2264100 words unless the task requires more detail.&#x27;,
+// … 省略 3 行（constants/prompts.ts:L535-L537）
+</code></pre></details></figure>
+<p>语言段要求解释、注释和沟通使用配置语言，技术名保留原样；风格段把名字和完整 prompt 放入数组（<code>constants/prompts.ts:142-158</code>）。这些要求同处动态装配，不意味着中文也按“英文词”有一个源码给出的统一分词算法。当前段只有词数措辞，无法从它推出输出长度的精确计数器。</p>
+<p>token 目标另要求用户指定目标后继续工作到接近目标，称其为最低要求；段缓存的安排见第 2 章，实际继续判定见<a href="14-budgets.html">第 14 章</a>。它约束工作轮次与预算，数值长度段约束说明文字，两者的对象不同。简单把 minimum 与百词要求放在一栏比较，会忽略代码、工具调用和后续轮次（<code>constants/prompts.ts:538-551</code>）。</p>
+<h2 id="section-3">接收者换成了另一个 agent</h2>
+<p>DEFAULT_AGENT_PROMPT 要求完成任务后简短报告成果和发现，说明调用者会转告用户。增强附注又要求绝对文件路径，代码片段只在具体文字决定结论时给出，禁止复述读过的代码。报告的接收者是调用者，报告内容应让它能接着决策，不能把原始搜索过程逐项倾倒（B-27）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:758-770</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L758-L770">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#005" data-quote-type="P" data-source-range="constants/prompts.ts:758-770">export const DEFAULT_AGENT_PROMPT = `You are an agent for Claude Code, Anthropic&#x27;s official CLI for Claude. Given the user&#x27;s message, you should use the tools available to complete the task. Complete the task fully—don&#x27;t gold-plate, but don&#x27;t leave it half-done. When you complete the task, respond with a concise report covering what was done and any key findings — the caller will relay this to the user, so it only needs the essentials.`
+// … 省略 7 行（constants/prompts.ts:L759-L765）
+  const notes = `Notes:
+- Agent threads always have their cwd reset between bash calls, as a result please only use absolute file paths.
+- In your final response, share file paths (always absolute, never relative) that are relevant to the task. Include code snippets only when the exact text is load-bearing (e.g., a bug you found, a function signature the caller asked for) — do not recap code you merely read.
+- For clear communication with the user the assistant MUST avoid using emojis.
+- Do not use a colon before tool calls. Text like &quot;Let me read the file:&quot; followed by a read tool call should just be &quot;Let me read the file.&quot; with a period.`
+</code></pre></details></figure>
+<p>环境段还带当前目录、worktree 与 shell 信息，MCP 段只拼已连接服务器的 instructions；delta 开启时改变传递位置。这些装配细节已由第 1 章详述（<code>constants/prompts.ts:651-710</code>、<code>constants/prompts.ts:579-604</code>、<code>utils/attachments.ts:1558-1585</code>）。子任务文字中的“绝对路径”与环境所示 cwd 配对，是实际执行上下文的提醒，而不只是回复格式偏好。</p>
+<p>工具结果可能被清除时，提示要求模型把后面还需要的信息写到自己的回复里。Function Result Clearing 则受特性、配置和模型支持条件控制，并告知保留最近 keepRecent 条；公共总结句提醒原工具结果可能消失（B-29）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>constants/prompts.ts:821-841</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L821-L841">核对原文</a></div><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#006" data-quote-type="P" data-source-range="constants/prompts.ts:821-841">// … 省略 17 行（constants/prompts.ts:L821-L837）
+Old tool results will be automatically cleared from context to free up space. The ${config.keepRecent} most recent results are always kept.`
+}
+
+const SUMMARIZE_TOOL_RESULTS_SECTION = `When working with tool results, write down any important information you might need later in your response, as the original tool result may be cleared later.`
+</code></pre></div></figure>
+<p>这段把用户可见文字同时用作后续上下文中的材料，但并没有允许把所有工具输出完整再抄一遍。要写下的是以后会用的重要信息；具体删除与恢复预算在第 15 章讨论。这里先看到输出形式与上下文寿命之间的接口：模型的回复不只传给人，也会留在未来的消息序列中。</p>
+<h2 id="section-4">摘要子任务先禁止调用工具</h2>
+<p>compact 的 NO_TOOLS_PREAMBLE 要求只输出文本，禁止所有工具，并说明唯一回合会因被拒绝的调用浪费。注释解释它继承父工具集以共享缓存，特定模型曾无视较弱尾部禁令，记录了回退比例。作者因此把强前导放最前；这是注释说的诊断与处理原因（B-32）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/prompt.ts:12-26</code><span>摘录 13 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/prompt.ts#L12-L26">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#007" data-quote-type="P" data-source-range="services/compact/prompt.ts:12-26">// Aggressive no-tools preamble. The cache-sharing fork path inherits the
+// parent&#x27;s full tool set (required for cache-key match), and on Sonnet 4.6+
+// adaptive-thinking models the model sometimes attempts a tool call despite
+// the weaker trailer instruction. With maxTurns: 1, a denied tool call means
+// no text output → falls through to the streaming fallback (2.79% on 4.6 vs
+// 0.01% on 4.5). Putting this FIRST and making it explicit about rejection
+// consequences prevents the wasted turn.
+const NO_TOOLS_PREAMBLE = `CRITICAL: Respond with TEXT ONLY. Do NOT call any tools.
+
+- Do NOT use Read, Bash, Grep, Glob, Edit, Write, or ANY other tool.
+- You already have all the context you need in the conversation above.
+- Tool calls will be REJECTED and will waste your only turn — you will fail the task.
+- Your entire response must be plain text: an &lt;analysis&gt; block followed by a &lt;summary&gt; block.
+// … 省略 2 行（services/compact/prompt.ts:L25-L26）
+</code></pre></details></figure>
+<p>摘要基础模板要求记录用户明确请求、技术点、文件、错误、全部非工具用户消息、待办、当前工作与下一步；下一步必须贴最近明确请求，并保留原话。它不是让模型借摘要回合继续改项目，工具禁令与任务目标共同收窄了这个回合的用途（<code>services/compact/prompt.ts:12-26</code>、<code>services/compact/prompt.ts:28-44</code>、<code>services/compact/prompt.ts:61-143</code>、<code>services/compact/prompt.ts:269-303</code>）。</p>
+<p>续接消息又是另一份 prompt：它先说明前面的内容是历史摘要，可附完整转录路径，有保留消息时说明其逐字保留。自动继续要求接着旧任务，不复述、不问“现在做什么”，自主模式再补“不是首次唤醒”。这个否定针对当前事件，防止把摘要后的轮次误当初次 tick（B-33）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/prompt.ts:337-374</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/prompt.ts#L337-L374">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#008" data-quote-type="P" data-source-range="services/compact/prompt.ts:337-374">// … 省略 20 行（services/compact/prompt.ts:L337-L356）
+  if (suppressFollowUpQuestions) {
+    let continuation = `${baseSummary}
+Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with &quot;I&#x27;ll continue&quot; or similar. Pick up the last task as if the break never happened.`
+
+    if (
+      (feature(&#x27;PROACTIVE&#x27;) || feature(&#x27;KAIROS&#x27;)) &amp;&amp;
+      proactiveModule?.isProactiveActive()
+    ) {
+      continuation += `
+
+You are running in autonomous/proactive mode. This is NOT a first wake-up — you were already working autonomously before compaction. Continue your work loop: pick up where you left off based on the summary above. Do not greet the user or ask what to work on.`
+// … 省略 7 行（services/compact/prompt.ts:L368-L374）
+</code></pre></details></figure>
+<p>所以，生成摘要与使用摘要不是同一次输出协议。前者必须遵守分析/摘要结构，后者必须恢复最新任务。若只查到 compact 的摘要模板，就把“继续别问问题”当生成器要求，会混淆调用阶段；恢复上下文时是否有完整转录和最近原文也改变了模型可用材料。</p>
+<h2 id="section-5">笔记更新限定内容来源与编辑位置</h2>
+<p>会话笔记 prompt 明确排除当前记笔记指令、系统提示、CLAUDE.md 和旧摘要。唯一任务是 Edit 笔记后停止；标题与斜体描述必须保留，只更新下面内容。没有实质新信息的节可以不写，Current State 则要更新。它还两次提醒不要把记笔记流程写进笔记本身（B-34）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/SessionMemory/prompts.ts:43-81</code><span>摘录 15 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/SessionMemory/prompts.ts#L43-L81">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#009" data-quote-type="P" data-source-range="services/SessionMemory/prompts.ts:43-81">function getDefaultUpdatePrompt(): string {
+  return `IMPORTANT: This message and these instructions are NOT part of the actual user conversation. Do NOT include any references to &quot;note-taking&quot;, &quot;session notes extraction&quot;, or these update instructions in the notes content.
+
+Based on the user conversation above (EXCLUDING this note-taking instruction message as well as system prompt, claude.md entries, or any past session summaries), update the session notes file.
+// … 省略 6 行（services/SessionMemory/prompts.ts:L47-L52）
+Your ONLY task is to use the Edit tool to update the notes file, then stop. You can make multiple edits (update every section as needed) - make all Edit tool calls in parallel in a single message. Do not call any other tools.
+
+CRITICAL RULES FOR EDITING:
+- The file must maintain its exact structure with all sections, headers, and italic descriptions intact
+-- NEVER modify, delete, or add section headers (the lines starting with &#x27;#&#x27; like # Task specification)
+-- NEVER modify or delete the italic _section description_ lines (these are the lines in italics immediately following each header - they start and end with underscores)
+-- The italic _section descriptions_ are TEMPLATE INSTRUCTIONS that must be preserved exactly as-is - they guide what content belongs in each section
+-- ONLY update the actual content that appears BELOW the italic _section descriptions_ within each existing section
+-- Do NOT add any new sections, summaries, or information outside the existing structure
+- Do NOT reference this note-taking process or instructions anywhere in the notes
+- It&#x27;s OK to skip updating a section if there are no substantial new insights to add. Do not add filler content like &quot;No info yet&quot;, just leave sections blank/unedited if appropriate.
+// … 省略 18 行（services/SessionMemory/prompts.ts:L64-L81）
+</code></pre></details></figure>
+<p>原文依据：<code>services/SessionMemory/prompts.ts:43-81</code>。</p>
+<p>这一排除很具体：系统给模型的编辑规则不属于用户讨论过的事情，保存它们会把抽取流程和被抽取材料混合。标题、模板说明和真正笔记又有不同可编辑权限。模板固定不是要求每节都填一段“暂无信息”；原文允许留空，避免把结构完整误读成内容必须填满。</p>
+<p>跨会话抽取的 opener 只允许最近 newMessageCount 条消息作为保存来源，禁止为确认模式继续 grep 源码、读代码或跑 git。推荐有限回合中先并行 Read，再并行 Write/Edit，因为编辑需要先读。这是抽取子任务的范围，不能把“禁止核验源码”拿去指导主 agent 修 bug（B-35）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/extractMemories/prompts.ts:26-44</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/extractMemories/prompts.ts#L26-L44">核对原文</a></summary><pre><code class="language-ts" data-block-id="06-output-and-subtasks.md#010" data-quote-type="P" data-source-range="services/extractMemories/prompts.ts:26-44">// … 省略 9 行（services/extractMemories/prompts.ts:L26-L34）
+    `You are now acting as the memory extraction subagent. Analyze the most recent ~${newMessageCount} messages above and use them to update your persistent memory systems.`,
+    &#x27;&#x27;,
+    `Available tools: ${FILE_READ_TOOL_NAME}, ${GREP_TOOL_NAME}, ${GLOB_TOOL_NAME}, read-only ${BASH_TOOL_NAME} (ls/find/cat/stat/wc/head/tail and similar), and ${FILE_EDIT_TOOL_NAME}/${FILE_WRITE_TOOL_NAME} for paths inside the memory directory only. ${BASH_TOOL_NAME} rm is not permitted. All other tools — MCP, Agent, write-capable ${BASH_TOOL_NAME}, etc — will be denied.`,
+    &#x27;&#x27;,
+    `You have a limited turn budget. ${FILE_EDIT_TOOL_NAME} requires a prior ${FILE_READ_TOOL_NAME} of the same file, so the efficient strategy is: turn 1 — issue all ${FILE_READ_TOOL_NAME} calls in parallel for every file you might update; turn 2 — issue all ${FILE_WRITE_TOOL_NAME}/${FILE_EDIT_TOOL_NAME} calls in parallel. Do not interleave reads and writes across multiple turns.`,
+    &#x27;&#x27;,
+    `You MUST only use content from the last ~${newMessageCount} messages to update your persistent memories. Do not waste any turns attempting to investigate or verify that content further — no grepping source files, no reading code to confirm a pattern exists, no git commands.` +
+// … 省略 3 行（services/extractMemories/prompts.ts:L42-L44）
+</code></pre></details></figure>
+<p>原文依据：<code>services/extractMemories/prompts.ts:26-44</code>。</p>
+<p>团队记忆提示还把持久保存与当前进度分开：计划变更写计划，离散步骤写任务，未来会话需要的资料写记忆；用户要求忽略记忆时应视入口为空（<code>memdir/teamMemPrompts.ts:68-94</code>）。相同的“做笔记”动词在不同子任务里对应不同材料、目录和生命周期，最终要按 prompt 的来源限制与实际权限回调一起检查，具体回调见第 16 章。</p>
+<p>本卷到此把字句接回了运行阶段：面向人的说明、面向调用者的报告、摘要输出、笔记编辑都指定了接收者和停点。下一卷从工具接口继续追踪，查看这些小流程到底存在哪个字段、模型什么时候能看到它们。<a href="07-tool-contracts.html">第 7 章</a>将先分清两个叫 description 的位置。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="05-completion.html"><span class="page-direction">&larr; 上一章</span><span>第 5 章 · 做到什么程度，何时算做完</span></a>
+<a href="07-tool-contracts.html"><span class="page-direction">&rarr; 下一章</span><span>第 7 章 · 工具接口、描述与发现协议</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>出版说明 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">信源与法律状态<span>出版说明</span></p>
+    <h1>出版说明</h1>
+  </header>
+  <div class="chapter-body"><p>作者：GitHub 账号 monadrome。仓库名为 <code>cc-sourcebook</code>，公开链接预定为 https://monadrome.github.io/cc-sourcebook/ 。目前只准备本地产物，尚未发布。</p>
+<h2 id="section-1">信源与法律状态</h2>
+<p>源码于 2026-03-31 经 npm 包 sourcemap 意外公开。本书从该事件的备份树独立取证，不借用其他源码分析。公开版用以下镜像核对完整原文，commit 固定到 40 位，不以浮动 HEAD 为准。</p>
+<p>首选镜像：https://github.com/Usamaliaquat123/Claude-Code-Source ，commit：<code>9955b25de0ca3ad6ff97757045006143de73db73</code>。其路径布局与本书引注一致，源码页固定在 https://github.com/Usamaliaquat123/Claude-Code-Source/tree/9955b25de0ca3ad6ff97757045006143de73db73 。负责人已抽验 8/8 行号命中，并确认完整 hash。</p>
+<p>备选镜像：https://github.com/sleeplessai/claude-code-leaked-source ，commit：<code>5a774a2b62d7949c1d94e0b726281554d7893cfd</code>。核对时必须在书中相对路径前加 <code>src/</code>，固定源码页为 https://github.com/sleeplessai/claude-code-leaked-source/tree/5a774a2b62d7949c1d94e0b726281554d7893cfd 。负责人同样抽验了 8/8 行号。</p>
+<p>原 kuberwastaken/claude-code 已改名 Kuberwastaken/claurst，当前 HEAD 是 Rust 项目，已无这份原始 TS 源码，不能用其当前 hash 代替本书信源。以上镜像验证用于钉版，不用于借鉴分析内容。</p>
+<p>本书是独立的技术研究与评论，分析为原创内容；公开版仅保留支撑评论所需的最小引文，其余原文由路径、行号与固定镜像索引。引文版权归原作者所有，本书不主张对引文的任何权利。</p>
+<p>本书描述该快照的静态代码行为，不代表当前发行产品行为。构建特性和远端开关的存在不证明它们在任何发行版启用；构建宏不能确定这份源码的产品版本号（<code>constants/system.ts:73-95</code>）。</p>
+<p>本书未获得原厂商授权，不声称与其存在隶属或背书关系。勘误与联系渠道：<a href="https://github.com/monadrome/cc-sourcebook/issues">Issues</a>。Issues 是本书的勘误与联系入口，作者为 monadrome；没有另列邮箱。</p>
+<h2 id="section-2">阅读约定</h2>
+<p>公开版保留中文分析、完整源码区间与承重短引。保留行逐字来自原文，英文、标点、空白及内部标识不改写。<code>// … 省略 N 行（path:Lx-Ly）</code> 是本书新增的省略标记，说明省去的精确范围；最多两处。保留行与标记顺序合起来覆盖标题的整个区间，标记不算源码行。</p>
+<p>只作存在性旁证的块换成 <code>（原文见 path:La-Lb，共 N 行，略）</code>。需要完整上下文时，按首选镜像的固定 commit 加路径与行号核对；使用备选时加 <code>src/</code>。镜像若失效，应在此标明核验链中断并暂停引流，不恢复大段转载。</p>
+<p>源码事实由附近的路径行号支持；【作者推断】明确标出解释。源码注释里的效果、原因和实验记录按注释归属，不当成本次实测。逐字专有引文仍未获授权，缩小体量不等于已取得引用权，也不提供法律结论。</p>
+<h2 id="section-3">本地产物</h2>
+<p><code>python3 build.py</code> 生成完整版 <code>site/</code>；<code>python3 build.py --public</code> 生成公开版 <code>site-public/</code>。构建只用 Python 3 标准库，页面无 CDN、外部字体或运行时网络依赖，直接打开 <code>index.html</code> 即可离线阅读。</p>
+<p>唯一可发布目录为 <code>site-public/</code>。它只包含阅读 HTML、本地 CSS、本 README 和 <code>.nojekyll</code>；不包含取证库、源码备份、完整版书稿或构建工具。本地研究仓库不能整体公开。当前任务不创建公开仓库、不推送、不启用 Pages。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页"><a href="01-prompt-assembly.html">从第 1 章开始阅读 &rarr;</a></nav>
+</article>
+</main>
+</body>
+</html>

@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 8 章 · 文件与 shell 工具怎样约束调用 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html" aria-current="page"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+<ol class="section-list">
+<li><a href="#section-1">Read 给编辑提供什么材料</a></li>
+<li><a href="#section-2">先读要求的真实分支</a></li>
+<li><a href="#section-3">搜索工具会规定何时转交探索</a></li>
+<li><a href="#section-4">Shell 的协议覆盖依赖和失败</a></li>
+<li><a href="#section-5">网页工具还会再次提示模型</a></li>
+</ol>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html" aria-current="page"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+<ol class="section-list">
+<li><a href="#section-1">Read 给编辑提供什么材料</a></li>
+<li><a href="#section-2">先读要求的真实分支</a></li>
+<li><a href="#section-3">搜索工具会规定何时转交探索</a></li>
+<li><a href="#section-4">Shell 的协议覆盖依赖和失败</a></li>
+<li><a href="#section-5">网页工具还会再次提示模型</a></li>
+</ol>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">C · 工具提示词<span>第 08 章</span></p>
+    <h1>文件与 shell 工具怎样约束调用</h1>
+  </header>
+  <div class="chapter-body"><p>这章沿 <code>tools/FileReadTool/prompt.ts:4-21</code>、<code>tools/FileReadTool/prompt.ts:23-49</code>、<code>tools/FileEditTool/prompt.ts:1-28</code>、<code>tools/FileEditTool/FileEditTool.ts:223-264</code>、<code>tools/FileEditTool/FileEditTool.ts:275-343</code> 与 <code>tools/FileWriteTool/prompt.ts:1-18</code>、<code>tools/FileWriteTool/FileWriteTool.ts:179-221</code> 读文件调用协议，再转向 Bash、PowerShell 和网页工具。值得看的不是“它能读写文件”这句能力介绍，而是缩进、读取状态、修改时间、字符串唯一性和 shell edition 这些具体条件。它们决定模型该如何构造下一次调用，也决定哪些前置要求已有实际分支支持。</p>
+<h2 id="section-1">Read 给编辑提供什么材料</h2>
+<p>Read的能力说明不能替代读权限，参数协议也不是所有格式共用一份正文视图。先看生成器怎样按文件形态组织输入，才能判断后面的编辑器拿到了哪种读取材料（C-09）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileReadTool/prompt.ts:4-21</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileReadTool/prompt.ts#L4-L21">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#001" data-quote-type="P" data-source-range="tools/FileReadTool/prompt.ts:4-21">// … 省略 3 行（tools/FileReadTool/prompt.ts:L4-L6）
+export const FILE_UNCHANGED_STUB =
+  &#x27;File unchanged since last read. The content from the earlier Read tool_result in this conversation is still current — refer to that instead of re-reading.&#x27;
+
+export const MAX_LINES_TO_READ = 2000
+// … 省略 11 行（tools/FileReadTool/prompt.ts:L11-L21）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileReadTool/prompt.ts:4-21</code>。</p>
+<p>绝对路径和能力描述解决的是“模型怎样提出读取”，不是“读取是否获准”。同一段又接受不存在文件和目录转介，说明它在引导调用格式；路径安全、读权限和结果大小则在工具实现中另判。把一条能力文案直接当作读权限，会把两个消费者混在一起。</p>
+<p>剩下的参数说明继续把输出格式拆开：行号、图片、PDF和目录各有接收方式。它们不是同一份“读取说明”的重复翻译，而是模型提交input时需要选择的不同形状。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileReadTool/prompt.ts:23-49</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileReadTool/prompt.ts#L23-L49">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#002" data-quote-type="P" data-source-range="tools/FileReadTool/prompt.ts:23-49">// … 省略 12 行（tools/FileReadTool/prompt.ts:L23-L34）
+Usage:
+- The file_path parameter must be an absolute path, not a relative path
+- By default, it reads up to ${MAX_LINES_TO_READ} lines starting from the beginning of the file${maxSizeInstruction}
+${offsetInstruction}
+${lineFormat}
+// … 省略 10 行（tools/FileReadTool/prompt.ts:L40-L49）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileReadTool/prompt.ts:23-49</code>。</p>
+<p>相同Read工具名可以提示不同读取策略，差别来自调用方配置而非模型临时偏好。大小提示、定位建议和行号格式分别进入模板，不能把某次生成的文案当成工具的永久规则（C-10）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileReadTool/FileReadTool.ts:339-378</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileReadTool/FileReadTool.ts#L339-L378">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#003" data-quote-type="C" data-source-range="tools/FileReadTool/FileReadTool.ts:339-378">// … 省略 9 行（tools/FileReadTool/FileReadTool.ts:L339-L347）
+    const limits = getDefaultFileReadingLimits()
+    const maxSizeInstruction = limits.includeMaxSizeInPrompt
+      ? `. Files larger than ${formatFileSize(limits.maxSizeBytes)} will return an error; use offset and limit for larger files`
+      : &#x27;&#x27;
+    const offsetInstruction = limits.targetedRangeNudge
+      ? OFFSET_INSTRUCTION_TARGETED
+      : OFFSET_INSTRUCTION_DEFAULT
+    return renderPromptTemplate(
+      pickLineFormatInstruction(),
+      maxSizeInstruction,
+      offsetInstruction,
+    )
+// … 省略 19 行（tools/FileReadTool/FileReadTool.ts:L360-L378）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileReadTool/FileReadTool.ts:339-378</code>。</p>
+<p>参数条件还改变了模型下一步能否定位修改目标：整文件阅读与已知区间阅读分别适合首次探索和回到既定位置。模板没有替模型决定哪种情境成立，而是把状态交给调用方；因此“Read总是带大小提示”或“总是要求offset”都比源码更强。</p>
+<p>验证代码把这些参数转成实际读取上限；提示里的PDF页数只在相应feature打开时出现。文案是输入选择器，执行器仍需解释offset、limit和当前文件类型的组合。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>tools/FileReadTool/prompt.ts:17-21</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileReadTool/prompt.ts#L17-L21">核对原文</a></div><pre><code class="language-ts" data-block-id="08-file-shell.md#004" data-quote-type="P" data-source-range="tools/FileReadTool/prompt.ts:17-21">export const OFFSET_INSTRUCTION_DEFAULT =
+  &quot;- You can optionally specify a line offset and limit (especially handy for long files), but it&#x27;s recommended to read the whole file by not providing these parameters&quot;
+
+export const OFFSET_INSTRUCTION_TARGETED =
+  &#x27;- When you already know which part of the file you need, only read that part. This can be important for larger files.&#x27;
+</code></pre></div></figure>
+<p>从读取到替换有一次表示转换：给人定位的行号前缀不能作为要匹配的磁盘内容。Edit文案把这点与唯一性放在一起，让模型先选对正文片段，再决定替换一个还是全部匹配（C-11）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileEditTool/prompt.ts:1-28</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileEditTool/prompt.ts#L1-L28">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#005" data-quote-type="P" data-source-range="tools/FileEditTool/prompt.ts:1-28">// … 省略 21 行（tools/FileEditTool/prompt.ts:L1-L21）
+Usage:${getPreReadInstruction()}
+- When editing text from Read tool output, ensure you preserve the exact indentation (tabs/spaces) as it appears AFTER the line number prefix. The line number prefix format is: ${prefixFormat}. Everything after that is the actual file content to match. Never include any part of the line number prefix in the old_string or new_string.
+- ALWAYS prefer editing existing files in the codebase. NEVER write new files unless explicitly required.
+- Only use emojis if the user explicitly requests it. Avoid adding emojis to files unless asked.
+- The edit will FAIL if \`old_string\` is not unique in the file. Either provide a larger string with more surrounding context to make it unique or use \`replace_all\` to change every instance of \`old_string\`.${minimalUniquenessHint}
+- Use \`replace_all\` for replacing and renaming strings across the file. This parameter is useful if you want to rename a variable for instance.`
+}
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileEditTool/prompt.ts:1-28</code>。</p>
+<p>这份描述要求先读，但还没有展示检查发生在哪个分支。特别是old_string为空时，工具可能把请求解释为创建，不能只按“Edit”这个名字把所有调用都当已有文件替换。下一节用返回位置检验这条文字要求的实际范围。</p>
+<h2 id="section-2">先读要求的真实分支</h2>
+<p>Edit 检查到文件不存在且 old_string 为空时接受创建；已有文件为空、old_string 为空也直接接受。只有普通替换继续查 readFileState。于是，工具文案里的先读要求并不是“任何使用 Edit 都必须此前 Read 同一文件”；新建和空内容路径有实际早返回（C-11）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileEditTool/FileEditTool.ts:223-264</code><span>摘录 20 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileEditTool/FileEditTool.ts#L223-L264">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#006" data-quote-type="C" data-source-range="tools/FileEditTool/FileEditTool.ts:223-264">    // File doesn&#x27;t exist
+    if (fileContent === null) {
+      // Empty old_string on nonexistent file means new file creation — valid
+      if (old_string === &#x27;&#x27;) {
+        return { result: true }
+// … 省略 21 行（tools/FileEditTool/FileEditTool.ts:L228-L248）
+    if (old_string === &#x27;&#x27;) {
+      // Only reject if the file has content (for file creation attempt)
+      if (fileContent.trim() !== &#x27;&#x27;) {
+        return {
+          result: false,
+          behavior: &#x27;ask&#x27;,
+          message: &#x27;Cannot create new file - file already exists.&#x27;,
+          errorCode: 3,
+        }
+      }
+
+      // Empty file with empty old_string is valid - we&#x27;re replacing empty with content
+      return {
+        result: true,
+      }
+// … 省略 1 行（tools/FileEditTool/FileEditTool.ts:L264-L264）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileEditTool/FileEditTool.ts:223-264</code>。</p>
+<p>普通编辑拒绝未读或 isPartialView，检查读后修改时间；Windows 时间戳变化但内容未变时，完整读取可用内容相同作回退。它用 findActualString 处理引号归一，再计算出现次数，replace_all 为假且多次匹配就返回错误。文本里的 exact replacement 因此不能解释成实现只接受字节完全相同的输入串。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileEditTool/FileEditTool.ts:275-343</code><span>摘录 11 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileEditTool/FileEditTool.ts#L275-L343">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#007" data-quote-type="C" data-source-range="tools/FileEditTool/FileEditTool.ts:275-343">// … 省略 16 行（tools/FileEditTool/FileEditTool.ts:L275-L290）
+      const lastWriteTime = getFileModificationTime(fullFilePath)
+      if (lastWriteTime &gt; readTimestamp.timestamp) {
+        // Timestamp indicates modification, but on Windows timestamps can change
+        // without content changes (cloud sync, antivirus, etc.). For full reads,
+        // compare content as a fallback to avoid false positives.
+        const isFullRead =
+          readTimestamp.offset === undefined &amp;&amp;
+          readTimestamp.limit === undefined
+        if (isFullRead &amp;&amp; fileContent === readTimestamp.content) {
+          // Content unchanged, safe to proceed
+        } else {
+// … 省略 42 行（tools/FileEditTool/FileEditTool.ts:L302-L343）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileEditTool/FileEditTool.ts:275-343</code>。</p>
+<p>时间戳检查和字符串检查是连续两道门。前者保护读到的文件没有在操作间变化，后者保护替换对象唯一；即便内容仍存在，读状态失效也会先拒绝。两个错误都返回 ask 形态，却表达不同的修复动作，不能都写成“再试一次”。</p>
+<p>这条检查与<a href="03-instruction-files.html">第 3 章</a>的指令处理链相接；原始/处理后内容如何分存已在那里说明。当前章只看消费方：readFileState.isPartialView 为真时，Edit 将它当作未满足读取要求，返回明确错误。读取者有材料与编辑器接受这份材料之间有具体布尔条件。</p>
+<p>Write的覆盖风险首先是操作选择问题，随后才是读取状态问题。它要求模型在局部修改时选Edit，但执行验证不会仅凭“整文件重写”的意图就跳过已有内容保护（C-12）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileWriteTool/prompt.ts:1-18</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileWriteTool/prompt.ts#L1-L18">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#008" data-quote-type="P" data-source-range="tools/FileWriteTool/prompt.ts:1-18">// … 省略 6 行（tools/FileWriteTool/prompt.ts:L1-L6）
+  return `\n- If this is an existing file, you MUST use the ${FILE_READ_TOOL_NAME} tool first to read the file&#x27;s contents. This tool will fail if you did not read the file first.`
+// … 省略 3 行（tools/FileWriteTool/prompt.ts:L8-L10）
+  return `Writes a file to the local filesystem.
+
+Usage:
+- This tool will overwrite the existing file if there is one at the provided path.${getPreReadInstruction()}
+- Prefer the Edit tool for modifying existing files \u2014 it only sends the diff. Only use this tool to create new files or for complete rewrites.
+- NEVER create documentation files (*.md) or README files unless explicitly requested by the User.
+- Only use emojis if the user explicitly requests it. Avoid writing emojis to files unless asked.`
+}
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileWriteTool/prompt.ts:1-18</code>。</p>
+<p>UNC早返回反而强化了分层：Write避免在权限检查前触发网络凭据行为，未存在文件则把创建交给后续流程；普通本地文件才需核对 mtime 和 partial view。这个例外保护的是检查过程本身，不是让UNC路径跳过用户授权。</p>
+<p>已有文件的完整读取状态与新文件的不存在状态被验证器刻意分开；“Write会覆盖”只是文案告诉模型的风险，是否能够写仍由权限链决定。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/FileWriteTool/FileWriteTool.ts:179-221</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/FileWriteTool/FileWriteTool.ts#L179-L221">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#009" data-quote-type="C" data-source-range="tools/FileWriteTool/FileWriteTool.ts:179-221">    // SECURITY: Skip filesystem operations for UNC paths to prevent NTLM credential leaks.
+    // On Windows, fs.existsSync() on UNC paths triggers SMB authentication which could
+    // leak credentials to malicious servers. Let the permission check handle UNC paths.
+    if (fullFilePath.startsWith(&#x27;\\\\&#x27;) || fullFilePath.startsWith(&#x27;//&#x27;)) {
+      return { result: true }
+    }
+// … 省略 37 行（tools/FileWriteTool/FileWriteTool.ts:L185-L221）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/FileWriteTool/FileWriteTool.ts:179-221</code>。</p>
+<p>Edit 与 Write 的差别不能只按“替换一些行”或“写整文件”来记。它们的新建例外、完整视图检查以及时间戳回退也不完全相同；短引与完整区间指针一起列出这些条件，调用出错时就能指出是哪一步拒绝，而不是一概怪工具不允许写。路径本身的敏感性详见第 13 章，当前章先把输入验证读完。</p>
+<h2 id="section-3">搜索工具会规定何时转交探索</h2>
+<p>搜索协议还限制谁承担多轮状态：直接查询适合一个范围明确的问题，开放调查则可能需要Agent接手。先看Grep的参数与转介，随后与Glob对照，才能分清共享策略和不同输入单位（C-13）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/GrepTool/prompt.ts:6-18</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/GrepTool/prompt.ts#L6-L18">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#010" data-quote-type="P" data-source-range="tools/GrepTool/prompt.ts:6-18">// … 省略 4 行（tools/GrepTool/prompt.ts:L6-L9）
+  - ALWAYS use ${GREP_TOOL_NAME} for search tasks. NEVER invoke \`grep\` or \`rg\` as a ${BASH_TOOL_NAME} command. The ${GREP_TOOL_NAME} tool has been optimized for correct permissions and access.
+  - Supports full regex syntax (e.g., &quot;log.*Error&quot;, &quot;function\\s+\\w+&quot;)
+  - Filter files with glob parameter (e.g., &quot;*.js&quot;, &quot;**/*.tsx&quot;) or type parameter (e.g., &quot;js&quot;, &quot;py&quot;, &quot;rust&quot;)
+  - Output modes: &quot;content&quot; shows matching lines, &quot;files_with_matches&quot; shows only file paths (default), &quot;count&quot; shows match counts
+  - Use ${AGENT_TOOL_NAME} tool for open-ended searches requiring multiple rounds
+  - Pattern syntax: Uses ripgrep (not grep) - literal braces need escaping (use \`interface\\{\\}\` to find \`interface{}\` in Go code)
+  - Multiline matching: By default patterns match within single lines only. For cross-line patterns like \`struct \\{[\\s\\S]*?field\`, use \`multiline: true\`
+// … 省略 2 行（tools/GrepTool/prompt.ts:L17-L18）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/GrepTool/prompt.ts:6-18</code>。</p>
+<p>Grep/Glob的“转交Agent”不是失败回退，而是对搜索范围的预判。单次工具已经能完成局部查询时继续派Agent只会增加一层交接；反过来，多轮探索若硬塞进一个regex调用，又会让模型自己维护状态。提示词在参数说明之外给了任务粒度的选择。</p>
+<p>两个工具的参数虽不同，转交条件相同；这说明共享的是任务粒度判断，不是输出格式。文件名搜索和内容搜索仍应分别按工具schema构造。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/GlobTool/prompt.ts:1-7</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/GlobTool/prompt.ts#L1-L7">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#011" data-quote-type="P" data-source-range="tools/GlobTool/prompt.ts:1-7">// … 省略 2 行（tools/GlobTool/prompt.ts:L1-L2）
+export const DESCRIPTION = `- Fast file pattern matching tool that works with any codebase size
+- Supports glob patterns like &quot;**/*.js&quot; or &quot;src/**/*.ts&quot;
+- Returns matching file paths sorted by modification time
+- Use this tool when you need to find files by name patterns
+- When you are doing an open ended search that may require multiple rounds of globbing and grepping, use the Agent tool instead`
+</code></pre></details></figure>
+<p>原文依据：<code>tools/GlobTool/prompt.ts:1-7</code>。</p>
+<p>系统段的定向搜索与广泛探索指导见第 4 章（<code>constants/prompts.ts:371-381</code>）；这里不用再抄一遍。两处文字可以配对检查：查明确文件或符号用直接工具，多轮开放调查才派 agent。描述并没有给开放探索一个自动分类器，调用者仍要按当前问题选择粒度。</p>
+<h2 id="section-4">Shell 的协议覆盖依赖和失败</h2>
+<p>Bash 的专用工具偏好与沙箱例外已在第 4 章详述（<code>tools/BashTool/prompt.ts:275-295</code>、<code>tools/BashTool/prompt.ts:354-369</code>、<code>tools/BashTool/prompt.ts:163-190</code>、<code>tools/BashTool/prompt.ts:228-272</code>）。命令编排部分另要求独立命令并行，有依赖用 &amp;&amp;，不在意前项失败时才用分号，不能用换行分开命令。等待规则要求后台通知、避免轮询、失败后诊断；Monitor 特性有另一份 sleep 指导（C-06）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/prompt.ts:297-328</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/prompt.ts#L297-L328">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#012" data-quote-type="P" data-source-range="tools/BashTool/prompt.ts:297-328">  const multipleCommandsSubitems = [
+    `If the commands are independent and can run in parallel, make multiple ${BASH_TOOL_NAME} tool calls in a single message. Example: if you need to run &quot;git status&quot; and &quot;git diff&quot;, send a single message with two ${BASH_TOOL_NAME} tool calls in parallel.`,
+    `If the commands depend on each other and must run sequentially, use a single ${BASH_TOOL_NAME} call with &#x27;&amp;&amp;&#x27; to chain them together.`,
+    &quot;Use &#x27;;&#x27; only when you need to run commands sequentially but don&#x27;t care if earlier commands fail.&quot;,
+    &#x27;DO NOT use newlines to separate commands (newlines are ok in quoted strings).&#x27;,
+  ]
+// … 省略 26 行（tools/BashTool/prompt.ts:L303-L328）
+</code></pre></details></figure>
+<p>这组规则把 shell 操作符当成控制流标记：&amp;&amp;表达前项成功是后项前提，分号只表达顺序而不表达成功依赖；并行调用则把独立性留在消息级。等待规则又把完成通知与主动轮询分开，因而“命令能运行”不等于“等待方式符合协议”。</p>
+<p>命令等待还有特性开关的分支，Monitor存在时提示更具体；无此工具时又给普通检查建议。相同的后台任务不会在两个构建中收到相同的等待协议。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/prompt.ts:331-352</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/prompt.ts#L331-L352">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#013" data-quote-type="P" data-source-range="tools/BashTool/prompt.ts:331-352">// … 省略 14 行（tools/BashTool/prompt.ts:L331-L344）
+          // bfs (which backs `find`) uses Oniguruma for -regex, which picks the
+          // FIRST matching alternative (leftmost-first), unlike GNU find&#x27;s
+          // POSIX leftmost-longest. This silently drops matches when a shorter
+          // alternative is a prefix of a longer one.
+          &quot;When using `find -regex` with alternation, put the longest alternative first. Example: use `&#x27;.*\\.\\(tsx\\|ts\\)&#x27;` not `&#x27;.*\\.\\(ts\\|tsx\\)&#x27;` — the second form silently skips `.tsx` files.&quot;,
+// … 省略 3 行（tools/BashTool/prompt.ts:L350-L352）
+</code></pre></details></figure>
+<p>这些操作符要求把失败语义也写进调用。若第二条只能在第一条成功后做，分号会表达错依赖；若两个命令只读取独立状态，合成一串又改变并行安排。源码用命令形式表达这组关系，但这一段不解析模型任务的真实依赖，不能因为 shell 字符合法就说工作流顺序已核验。</p>
+<p>Git任务的规则可由内联文案承载，也可转给技能；文本长短不能独自证明安全纪律有没有。按用户类型选择的入口先决定规则从哪里来，再决定模型该怎样提交和核验（C-07）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/prompt.ts:53-76</code><span>摘录 6 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/prompt.ts#L53-L76">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#014" data-quote-type="P" data-source-range="tools/BashTool/prompt.ts:53-76">// … 省略 2 行（tools/BashTool/prompt.ts:L53-L54）
+  // For ant users, use the short version pointing to skills
+  if (process.env.USER_TYPE === &#x27;ant&#x27;) {
+    const skillsSection = !isEnvTruthy(process.env.CLAUDE_CODE_SIMPLE)
+      ? `For git commits and pull requests, use the \`/commit\` and \`/commit-push-pr\` skills:
+- \`/commit\` - Create a git commit with staged changes
+- \`/commit-push-pr\` - Commit, push, and create a pull request
+// … 省略 16 行（tools/BashTool/prompt.ts:L61-L76）
+</code></pre></details></figure>
+<p>外部Git段把授权、暂存和提交后的核验排成流水线，内部用户短段则把同一套纪律转交给技能。两个版本不是一个流程删掉几行，而是把安全协议的承载位置改变了：审计时必须先确定用户类型和技能是否实际可用。</p>
+<p>流程的前半段先得到状态与差异，后半段才写提交；它把“有改动”与“可以提交”分开。第一段的授权和安全操作是后续步骤的门，不是提交完成后的说明。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/prompt.ts:78-125</code><span>摘录 13 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/prompt.ts#L78-L125">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#015" data-quote-type="P" data-source-range="tools/BashTool/prompt.ts:78-125">// … 省略 5 行（tools/BashTool/prompt.ts:L78-L82）
+Only create commits when requested by the user. If unclear, ask first. When the user asks you to create a new git commit, follow these steps carefully:
+
+You can call multiple tools in a single response. When multiple independent pieces of information are requested and all commands are likely to succeed, run multiple tool calls in parallel for optimal performance. The numbered steps below indicate which commands should be batched in parallel.
+
+Git Safety Protocol:
+- NEVER update the git config
+- NEVER run destructive git commands (push --force, reset --hard, checkout ., restore ., clean -f, branch -D) unless the user explicitly requests these actions. Taking unauthorized destructive actions is unhelpful and can result in lost work, so it&#x27;s best to ONLY run these commands when given direct instructions 
+- NEVER skip hooks (--no-verify, --no-gpg-sign, etc) unless the user explicitly requests it
+- NEVER run force push to main/master, warn the user if they request it
+- CRITICAL: Always create NEW commits rather than amending, unless the user explicitly requests a git amend. When a pre-commit hook fails, the commit did NOT happen — so --amend would modify the PREVIOUS commit, which may result in destroying work or losing previous changes. Instead, after hook failure, fix the issue, re-stage, and create a NEW commit
+- When staging files, prefer adding specific files by name rather than using &quot;git add -A&quot; or &quot;git add .&quot;, which can accidentally include sensitive files (.env, credentials) or large binaries
+- NEVER commit changes unless the user explicitly asks you to. It is VERY IMPORTANT to only commit when explicitly asked, otherwise the user will feel that you are being too proactive
+
+// … 省略 30 行（tools/BashTool/prompt.ts:L96-L125）
+</code></pre></details></figure>
+<p>这段把暂存、消息和PR正文的约束接在同一个Git任务里，要求模型看完整分叉提交而非只读最后一次。它补的是审阅范围，和前一段的本地状态检查不是重复。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/prompt.ts:127-161</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/prompt.ts#L127-L161">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#016" data-quote-type="P" data-source-range="tools/BashTool/prompt.ts:127-161">// … 省略 5 行（tools/BashTool/prompt.ts:L127-L131）
+1. Run the following bash commands in parallel using the ${BASH_TOOL_NAME} tool, in order to understand the current state of the branch since it diverged from the main branch:
+   - Run a git status command to see all untracked files (never use -uall flag)
+   - Run a git diff command to see both staged and unstaged changes that will be committed
+   - Check if the current branch tracks a remote branch and is up to date with the remote, so you know if you need to push to the remote
+   - Run a git log command and \`git diff [base-branch]...HEAD\` to understand the full commit history for the current branch (from the time it diverged from the base branch)
+2. Analyze all changes that will be included in the pull request, making sure to look at all relevant commits (NOT just the latest commit, but ALL commits that will be included in the pull request!!!), and draft a pull request title and summary:
+   - Keep the PR title short (under 70 characters)
+   - Use the description/body for details, not the title
+// … 省略 22 行（tools/BashTool/prompt.ts:L140-L161）
+</code></pre></details></figure>
+<p>钩子失败后不能随手 amend，原句给出具体后果：失败意味着本次提交没发生，amend 会改到上一个提交。这个解释可直接引用，无须泛讲“谨慎有益”。暂存具体路径也是协议的一环，避免一条全量暂存命令包含无关文件；第 4 章授权范围与这里的 Git 操作步骤是相连的两个角度。</p>
+<p>PowerShell把环境检测结果变成语法许可，未知edition时还选择保守的兼容文本。命令的正确形状不只取决于用户任务，还取决于宿主检测到了哪一条分支（C-34）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/PowerShellTool/prompt.ts:46-82</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/PowerShellTool/prompt.ts#L46-L82">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#017" data-quote-type="P" data-source-range="tools/PowerShellTool/prompt.ts:46-82">/**
+ * Version-specific syntax guidance. The model&#x27;s training data covers both
+ * editions but it can&#x27;t tell which one it&#x27;s targeting, so it either emits
+ * pwsh-7 syntax on 5.1 (parser error → exit 1) or needlessly avoids &amp;&amp; on 7.
+ */
+function getEditionSection(edition: PowerShellEdition | null): string {
+  if (edition === &#x27;desktop&#x27;) {
+    return `PowerShell edition: Windows PowerShell 5.1 (powershell.exe)
+   - Pipeline chain operators \`&amp;&amp;\` and \`||\` are NOT available — they cause a parser error. To run B only if A succeeds: \`A; if ($?) { B }\`. To chain unconditionally: \`A; B\`.
+// … 省略 28 行（tools/PowerShellTool/prompt.ts:L55-L82）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/PowerShellTool/prompt.ts:46-82</code>。</p>
+<p>edition分支对同一字符串给出不同合法语法，说明环境发现是生成命令的前置输入；它也会改变stderr和编码的解释。仅从PowerShell工具名或用户操作系统不能推出该分支，prompt生成器必须先检测edition，再拼调用协议。</p>
+<p>运行段又把交互命令排除，给出here-string与独立/依赖命令的具体写法；语法兼容与调用编排是两个连续但不同的条件。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/PowerShellTool/prompt.ts:105-145</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/PowerShellTool/prompt.ts#L105-L145">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#018" data-quote-type="P" data-source-range="tools/PowerShellTool/prompt.ts:105-145">// … 省略 5 行（tools/PowerShellTool/prompt.ts:L105-L109）
+Passing multiline strings (commit messages, file content) to native executables:
+   - Use a single-quoted here-string so PowerShell does not expand \`$\` or backticks inside. The closing \`&#x27;@\` MUST be at column 0 (no leading whitespace) on its own line — indenting it is a parse error:
+&lt;example&gt;
+git commit -m @&#x27;
+Commit message here.
+Second line with $literal dollar signs.
+&#x27;@
+&lt;/example&gt;
+   - Use \`@&#x27;...&#x27;@\` (single-quoted, literal) not \`@&quot;...&quot;@\` (double-quoted, interpolated) unless you need variable expansion
+   - For arguments containing \`-\`, \`@\`, or other characters PowerShell parses as operators, use the stop-parsing token: \`git log --% --format=%H\`
+// … 省略 26 行（tools/PowerShellTool/prompt.ts:L120-L145）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/PowerShellTool/prompt.ts:105-145</code>。</p>
+<p>这组描述让环境信息落到实际语法选择。模型知道当前是 Windows，并不足以决定 PowerShell 可以用 &amp;&amp;；要读取 edition 分支。遇到命令失败时，环境不匹配、参数错、权限和沙箱原因各有证据来源，不能只因错误发生在 shell 就把它归为一种失败。</p>
+<h2 id="section-5">网页工具还会再次提示模型</h2>
+<p>WebFetch 给主模型说明 URL、提取 prompt、Markdown 转换、小模型处理、缓存和重定向；makeSecondaryModelPrompt 又给处理网页的模型拼接网页正文、调用者问题和 guidelines。预批准域名只要求简洁与相关细节，其他域名另有引用长度和原句使用要求。一个工具调用后面存在第二次文本装配（C-30）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/WebFetchTool/prompt.ts:1-46</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/WebFetchTool/prompt.ts#L1-L46">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#019" data-quote-type="P" data-source-range="tools/WebFetchTool/prompt.ts:1-46">// … 省略 27 行（tools/WebFetchTool/prompt.ts:L1-L27）
+  const guidelines = isPreapprovedDomain
+    ? `Provide a concise response based on the content above. Include relevant details, code examples, and documentation excerpts as needed.`
+    : `Provide a concise response based only on the content above. In your response:
+ - Enforce a strict 125-character maximum for quotes from any source document. Open Source Software is ok as long as we respect the license.
+ - Use quotation marks for exact language from articles; any language outside of the quotation should never be word-for-word the same.
+ - You are not a lawyer and never comment on the legality of your own prompts and responses.
+ - Never produce or reproduce exact song lyrics.`
+// … 省略 12 行（tools/WebFetchTool/prompt.ts:L35-L46）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/WebFetchTool/prompt.ts:1-46</code>。</p>
+<p>二级模型的输入边界也不同：网页正文放在分隔线内，调用者prompt随后出现，guidelines最后追加。非预批准域名的引用规则只约束二级模型的输出文字，不替主模型判断网页内容可信；来源边界仍由第4章的提示注入规则处理。</p>
+<p>文案所称只读是工具用途描述，返回值所称摘要是处理结果形式；这两者都不让网页正文获得用户授权。第 4 章的提示注入提醒仍要求模型辨别外来结果。在这里继续查内容进入哪个提示位置，能看到问题和网页正文怎样并排，但没有给出“外来正文已经可信”的判定。</p>
+<p>WebSearch 则读当前年月，要求查近期信息使用当前年份，最终答复附 Sources 并列相关 URL。这个要求跨过工具调用本身，伸到用户回复；地区可用性说明也只是当前描述中的文字，不能用它断言本机服务状态（C-31）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/WebSearchTool/prompt.ts:1-34</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/WebSearchTool/prompt.ts#L1-L34">核对原文</a></summary><pre><code class="language-ts" data-block-id="08-file-shell.md#020" data-quote-type="P" data-source-range="tools/WebSearchTool/prompt.ts:1-34">// … 省略 13 行（tools/WebSearchTool/prompt.ts:L1-L13）
+CRITICAL REQUIREMENT - You MUST follow this:
+  - After answering the user&#x27;s question, you MUST include a &quot;Sources:&quot; section at the end of your response
+  - In the Sources section, list all relevant URLs from the search results as markdown hyperlinks: [Title](URL)
+  - This is MANDATORY - never skip including sources in your response
+// … 省略 12 行（tools/WebSearchTool/prompt.ts:L18-L29）
+IMPORTANT - Use the correct year in search queries:
+  - The current month is ${currentMonthYear}. You MUST use this year when searching for recent information, documentation, or current events.
+  - Example: If the user asks for &quot;latest React docs&quot;, search for &quot;React documentation&quot; with the current year, NOT last year
+`
+}
+</code></pre></details></figure>
+<p>原文依据：<code>tools/WebSearchTool/prompt.ts:1-34</code>。</p>
+<p>WebSearch把检索日期约束延伸到最终答复的 Sources 区块，工具调用与用户可见的引用格式因此相连。日期来自运行时函数，来源URL来自搜索结果；当前提示词没有证明地区可用性或链接内容已验证，输出规范和数据真实性仍是两条链。</p>
+<p>文件、shell、网页三组工具展示了不同层的微型流程：输入如何准备、失败后怎样重新调用、结果怎样写入最终答复。边界不止停在 schema。下一章继续看 Agent、计划和共享任务表，它们把这些动作组织成跨参与者的工作流。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="07-tool-contracts.html"><span class="page-direction">&larr; 上一章</span><span>第 7 章 · 工具接口、描述与发现协议</span></a>
+<a href="09-agent-workflows.html"><span class="page-direction">&rarr; 下一章</span><span>第 9 章 · 委派、计划与任务协作的调用流程</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

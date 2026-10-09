@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 13 章 · 路径保护与沙箱执行 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html" aria-current="page"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+<ol class="section-list">
+<li><a href="#section-1">路径检查同时看原路径和解析结果</a></li>
+<li><a href="#section-2">配置写入有窄会话豁免</a></li>
+<li><a href="#section-3">Shell 语法不只是一个命令前缀</a></li>
+<li><a href="#section-4">权限规则转换成沙箱配置</a></li>
+<li><a href="#section-5">不走沙箱还需读实际条件</a></li>
+<li><a href="#section-6">共享记忆还有写入与上传检查</a></li>
+</ol>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html" aria-current="page"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+<ol class="section-list">
+<li><a href="#section-1">路径检查同时看原路径和解析结果</a></li>
+<li><a href="#section-2">配置写入有窄会话豁免</a></li>
+<li><a href="#section-3">Shell 语法不只是一个命令前缀</a></li>
+<li><a href="#section-4">权限规则转换成沙箱配置</a></li>
+<li><a href="#section-5">不走沙箱还需读实际条件</a></li>
+<li><a href="#section-6">共享记忆还有写入与上传检查</a></li>
+</ol>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">D · 权限与安全边界<span>第 13 章</span></p>
+    <h1>路径保护与沙箱执行</h1>
+  </header>
+  <div class="chapter-body"><p>allow 是判定结果，文件和进程怎样执行还有具体条件。<code>utils/permissions/filesystem.ts:606-665</code> 的路径检查和 <code>utils/sandbox/sandbox-adapter.ts:172-220</code> 的沙箱配置转换是本章入口。值得放在一起读，是因为敏感路径、会话级豁免、符号链接与 OS 沙箱各处理不同边界；把它们压成一个“安全模式”会遮住例外和委派层。</p>
+<h2 id="section-1">路径检查同时看原路径和解析结果</h2>
+<p>checkPathSafetyForAutoEdit 使用预计算路径或 getPathsForPermissionCheck，遍历原路径与符号链接解析结果。可疑 Windows 形态返回 safe:false、classifierApprovable:false；Claude 配置和危险文件返回同样不安全，但可以交分类器批准。这个差别是返回字段，不是消息里一个语气强弱变化（D-42）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/filesystem.ts:606-665</code><span>摘录 20 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/filesystem.ts#L606-L665">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#001" data-quote-type="C" data-source-range="utils/permissions/filesystem.ts:606-665">// … 省略 25 行（utils/permissions/filesystem.ts:L606-L630）
+  for (const pathToCheck of pathsToCheck) {
+    if (hasSuspiciousWindowsPathPattern(pathToCheck)) {
+      return {
+        safe: false,
+        message: `Claude requested permissions to write to ${path}, which contains a suspicious Windows path pattern that requires manual approval.`,
+        classifierApprovable: false,
+      }
+    }
+  }
+
+  // Check for Claude config files on all paths
+  for (const pathToCheck of pathsToCheck) {
+    if (isClaudeConfigFilePath(pathToCheck)) {
+      return {
+        safe: false,
+        message: `Claude requested permissions to write to ${path}, but you haven&#x27;t granted it yet.`,
+        classifierApprovable: true,
+      }
+    }
+  }
+// … 省略 15 行（utils/permissions/filesystem.ts:L651-L665）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/filesystem.ts:606-665</code>。</p>
+<p>auto 对该字段的处理详见第 11 章，bypass 则不能直接越过 safetyCheck。检查名带 AutoEdit，不说明它的影响只局限在 acceptEdits；调用方怎样把 reason 返回到主管线才决定模式处理。路径检查与外层权限判定是一条真实调用链，需要两头对拍。</p>
+<p>危险路径函数的注释列出 .git、IDE 与 shell 配置的原因：数据外泄、代码执行、编辑器设置或启动脚本被修改；还处理 UNC。匹配按统一大小写比较，.claude/worktrees 被当结构路径跳过这一层目录，但更深的危险目录仍检查。这是按路径片段作的豁免，不是整个 worktree 目录都失去保护（D-43）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/filesystem.ts:424-471</code><span>摘录 16 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/filesystem.ts#L424-L471">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#002" data-quote-type="C" data-source-range="utils/permissions/filesystem.ts:424-471">// … 省略 32 行（utils/permissions/filesystem.ts:L424-L455）
+      // Special case: .claude/worktrees/ is a structural path (where Claude stores
+      // git worktrees), not a user-created dangerous directory. Skip the .claude
+      // segment when it&#x27;s followed by &#x27;worktrees&#x27;. Any nested .claude directories
+      // within the worktree (not followed by &#x27;worktrees&#x27;) are still blocked.
+      if (dir === &#x27;.claude&#x27;) {
+        const nextSegment = pathSegments[i + 1]
+        if (
+          nextSegment &amp;&amp;
+          normalizeCaseForComparison(nextSegment) === &#x27;worktrees&#x27;
+        ) {
+          break // Skip this .claude, continue checking other segments
+        }
+      }
+
+      return true
+    }
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/filesystem.ts:424-471</code>。</p>
+<p>这些原因来自注释，具体行为由循环和条件确认。用混合大小写命名或把敏感文件藏到符号链接后面，都是代码检查明确考虑的形态；但当前函数仍只证明检查点存在。团队记忆的深层真实路径检查稍后还会给出另一种实现，不能把所有路径验证都说成同一个标准化函数。</p>
+<h2 id="section-2">配置写入有窄会话豁免</h2>
+<p>写权限先查 deny，接着处理内部可编辑路径，再只搜索 session 的 .claude allow。规则必须处在项目或全局 .claude 范围，不能含 ..，以 /** 结束；收窄到单个 skill 的范围也可接受。随后才跑一般安全检查，建议也可以只授权这个 skill（D-44）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/permissions/filesystem.ts:1241-1338</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/permissions/filesystem.ts#L1241-L1338">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#003" data-quote-type="C" data-source-range="utils/permissions/filesystem.ts:1241-1338">// … 省略 40 行（utils/permissions/filesystem.ts:L1241-L1280）
+    const ruleContent = claudeFolderAllowRule.ruleValue.ruleContent
+    if (
+      ruleContent &amp;&amp;
+      (ruleContent.startsWith(CLAUDE_FOLDER_PERMISSION_PATTERN.slice(0, -2)) ||
+        ruleContent.startsWith(
+          GLOBAL_CLAUDE_FOLDER_PERMISSION_PATTERN.slice(0, -2),
+        )) &amp;&amp;
+      !ruleContent.includes(&#x27;..&#x27;) &amp;&amp;
+      ruleContent.endsWith(&#x27;/**&#x27;)
+// … 省略 49 行（utils/permissions/filesystem.ts:L1290-L1338）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/permissions/filesystem.ts:1241-1338</code>。</p>
+<p>这条顺序是旧概括“敏感路径一律强制询问”需要校注的原因。工具自查内部已处理特定豁免，主判定拿到的可能是 allow；外层不能为一个已经没有 safetyCheck 的结果再执行那条检查。会话来源限定又防止宽泛永久授权意外替模型开放整片配置目录。</p>
+<h2 id="section-3">Shell 语法不只是一个命令前缀</h2>
+<p>Bash 安全模式表列出进程替换、命令和参数替换、zsh 扩展。注释举 =curl 为例：shell 会展开成可执行路径，解析器却看见 =curl，可能绕开 curl 前缀 deny。复合命令的逐子检查详见第 10 章，这里看另一个风险：同一执行行为可能由不同表面语法产生（D-56）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/bashSecurity.ts:12-41</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/bashSecurity.ts#L12-L41">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#004" data-quote-type="C" data-source-range="tools/BashTool/bashSecurity.ts:12-41">// … 省略 8 行（tools/BashTool/bashSecurity.ts:L12-L19）
+  // Zsh EQUALS expansion: =cmd at word start expands to $(which cmd).
+  // `=curl evil.com` → `/usr/bin/curl evil.com`, bypassing Bash(curl:*) deny
+  // rules since the parser sees `=curl` as the base command, not `curl`.
+  // Only matches word-initial = followed by a command-name char (not VAR=val).
+  {
+    pattern: /(?:^|[\s;&amp;|])=[a-zA-Z_]/,
+    message: &#x27;Zsh equals expansion (=cmd)&#x27;,
+  },
+// … 省略 14 行（tools/BashTool/bashSecurity.ts:L28-L41）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/BashTool/bashSecurity.ts:12-41</code>。</p>
+<p>前缀规则可以匹配已知字符串，不能自行理解所有 shell 展开。静态安全表为这些形态增加检查，内容级 deny 仍需适当的解析输入；这也是为何书中保留命令分析模块的接口，却不据有限模式表宣称 Bash 解析完整。遇到不支持或可疑语法，必须按返回行为查后续，不靠工具名概括结果。</p>
+<h2 id="section-4">权限规则转换成沙箱配置</h2>
+<p>网络 allowedDomains 来自 sandbox 设置与 WebFetch(domain:...) allow；开启只允许托管域名的策略时只取 policySettings。deny 域名另行收集。模型用 Bash 访问网络，沙箱仍可沿这些配置约束域名，因此工具权限来源与进程网络规则在转换器里接起来（D-45）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/sandbox/sandbox-adapter.ts:172-220</code><span>摘录 14 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/sandbox/sandbox-adapter.ts#L172-L220">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#005" data-quote-type="C" data-source-range="utils/sandbox/sandbox-adapter.ts:172-220">// … 省略 9 行（utils/sandbox/sandbox-adapter.ts:L172-L180）
+  // When allowManagedSandboxDomainsOnly is enabled, only use domains from policy settings
+  if (shouldAllowManagedSandboxDomainsOnly()) {
+    const policySettings = getSettingsForSource(&#x27;policySettings&#x27;)
+    for (const domain of policySettings?.sandbox?.network?.allowedDomains ||
+      []) {
+      allowedDomains.push(domain)
+    }
+    for (const ruleString of policySettings?.permissions?.allow || []) {
+      const rule = permissionRuleValueFromString(ruleString)
+      if (
+        rule.toolName === WEB_FETCH_TOOL_NAME &amp;&amp;
+        rule.ruleContent?.startsWith(&#x27;domain:&#x27;)
+      ) {
+        allowedDomains.push(rule.ruleContent.substring(&#x27;domain:&#x27;.length))
+// … 省略 26 行（utils/sandbox/sandbox-adapter.ts:L195-L220）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/sandbox/sandbox-adapter.ts:172-220</code>。</p>
+<p>初始 allowWrite 包含当前目录和 Claude 临时目录，denyWrite 无条件加入设置文件与托管 drop-in，还保护原目录与当前目录的 skills。注释直接把拒写 settings 和防沙箱逃逸关联，把 skills 与 commands/agents 的权限等级关联。这里说的是配置生成的拒写项，不是用户确认弹窗里的建议（D-46）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/sandbox/sandbox-adapter.ts:222-255</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/sandbox/sandbox-adapter.ts#L222-L255">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#006" data-quote-type="C" data-source-range="utils/sandbox/sandbox-adapter.ts:222-255">// … 省略 25 行（utils/sandbox/sandbox-adapter.ts:L222-L246）
+  // Block writes to .claude/skills in both original and current working directories.
+  // The sandbox-runtime&#x27;s getDangerousDirectories() protects .claude/commands and
+  // .claude/agents but not .claude/skills. Skills have the same privilege level
+  // (auto-discovered, auto-loaded, full Claude capabilities) so they need the
+  // same OS-level sandbox protection.
+  denyWrite.push(resolve(originalCwd, &#x27;.claude&#x27;, &#x27;skills&#x27;))
+  if (cwd !== originalCwd) {
+    denyWrite.push(resolve(cwd, &#x27;.claude&#x27;, &#x27;skills&#x27;))
+  }
+</code></pre></details></figure>
+<p>原文依据：<code>utils/sandbox/sandbox-adapter.ts:222-255</code>。</p>
+<p>Edit allow/deny 与 Read deny 分别转为 allowWrite、denyWrite、denyRead。sandbox.filesystem 的路径又按标准绝对路径解析，权限规则却可能使用设置相对语义；注释明确警告两者不同。把同样的 / 开头字符串从一个设置项复制到另一个，不能保证生成相同规则（D-47）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/sandbox/sandbox-adapter.ts:305-343</code><span>摘录 13 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/sandbox/sandbox-adapter.ts#L305-L343">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#007" data-quote-type="C" data-source-range="utils/sandbox/sandbox-adapter.ts:305-343">// … 省略 24 行（utils/sandbox/sandbox-adapter.ts:L305-L328）
+    // Extract filesystem paths from sandbox.filesystem settings
+    // sandbox.filesystem.* uses standard path semantics (/path = absolute),
+    // NOT the permission-rule convention (/path = settings-relative). #30067
+    const fs = sourceSettings?.sandbox?.filesystem
+    if (fs) {
+      for (const p of fs.allowWrite || []) {
+        allowWrite.push(resolveSandboxFilesystemPath(p, source))
+      }
+      for (const p of fs.denyWrite || []) {
+        denyWrite.push(resolveSandboxFilesystemPath(p, source))
+      }
+      for (const p of fs.denyRead || []) {
+        denyRead.push(resolveSandboxFilesystemPath(p, source))
+// … 省略 2 行（utils/sandbox/sandbox-adapter.ts:L342-L343）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/sandbox/sandbox-adapter.ts:305-343</code>。</p>
+<p>配置转换不是重跑一遍提示词。它读设置、解析规则、填 runtime 字段；描述文本里的“默认在沙箱运行”只是对这个环境的告知。模型收到的目录限制和 OS 执行得到的配置有共同来源，但不能因显示文案删重或归一后，就认为实际允许路径也被同样改写。</p>
+<h2 id="section-5">不走沙箱还需读实际条件</h2>
+<p>excludedCommands 顶部注释明确说这是用户便利功能，不是安全边界，真正控制是会询问的沙箱权限系统。shouldUseSandbox 还查沙箱启用、显式禁用是否被策略允许以及命令是否存在；自动许可与允许无沙箱命令的设置未配时默认 true，不代表沙箱本身默认已开启（D-48）。</p>
+<figure class="source-quote"><div class="source inline-source"><div class="source-caption"><code>tools/BashTool/shouldUseSandbox.ts:18-21</code><span>摘录 4 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/shouldUseSandbox.ts#L18-L21">核对原文</a></div><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#008" data-quote-type="M" data-source-range="tools/BashTool/shouldUseSandbox.ts:18-21">// NOTE: excludedCommands is a user-facing convenience feature, not a security boundary.
+// It is not a security bug to be able to bypass excludedCommands — the sandbox permission
+// system (which prompts users) is the actual security control.
+function containsExcludedCommand(command: string): boolean {
+</code></pre></div></figure>
+<figure class="source-quote"><details class="source"><summary><code>utils/sandbox/sandbox-adapter.ts:468-477</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/sandbox/sandbox-adapter.ts#L468-L477">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#009" data-quote-type="C" data-source-range="utils/sandbox/sandbox-adapter.ts:468-477">// … 省略 1 行（utils/sandbox/sandbox-adapter.ts:L468-L468）
+function isAutoAllowBashIfSandboxedEnabled(): boolean {
+  const settings = getSettings_DEPRECATED()
+  return settings?.sandbox?.autoAllowBashIfSandboxed ?? true
+}
+
+function areUnsandboxedCommandsAllowed(): boolean {
+  const settings = getSettings_DEPRECATED()
+  return settings?.sandbox?.allowUnsandboxedCommands ?? true
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/sandbox/sandbox-adapter.ts:468-477</code>。</p>
+<p>第 4 章已完整引用 shouldUseSandbox 与模型的逃逸重试文本，这里不再抄那段。Bash 权限自查在沙箱和自动许可开启、命令确实会沙箱化时调用 checkSandboxAutoAllow；注释强调尊重显式 deny/ask。沙箱自动许可是一条带条件的权限路径，不是一项覆盖全部用户规则的总开关（D-50）。</p>
+<figure class="source-quote"><details class="source"><summary><code>tools/BashTool/bashPermissions.ts:1829-1844</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/tools/BashTool/bashPermissions.ts#L1829-L1844">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#010" data-quote-type="C" data-source-range="tools/BashTool/bashPermissions.ts:1829-1844">// … 省略 2 行（tools/BashTool/bashPermissions.ts:L1829-L1830）
+  if (
+    SandboxManager.isSandboxingEnabled() &amp;&amp;
+    SandboxManager.isAutoAllowBashIfSandboxedEnabled() &amp;&amp;
+    shouldUseSandbox(input)
+  ) {
+    const sandboxAutoAllowResult = checkSandboxAutoAllow(
+      input,
+      appState.toolPermissionContext,
+    )
+    if (sandboxAutoAllowResult.behavior !== &#x27;passthrough&#x27;) {
+      return sandboxAutoAllowResult
+    }
+// … 省略 2 行（tools/BashTool/bashPermissions.ts:L1843-L1844）
+</code></pre></details></figure>
+<p>原文依据：<code>tools/BashTool/bashPermissions.ts:1829-1844</code>。</p>
+<p>实际 Shell 在 shouldUseSandbox 为真时调用 SandboxManager.wrapWithSandbox；适配器等待初始化，否则报错，再交 BaseSandboxManager。调研到这里止于外部 runtime 委派，不能描述其内核策略已由本树独立核验。这个边界需要在本章明确，因为“已配置沙箱”与“我们审过其实现”不同（D-49）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/Shell.ts:256-265</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/Shell.ts#L256-L265">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#011" data-quote-type="C" data-source-range="utils/Shell.ts:256-265">  const isSandboxedPowerShell = shouldUseSandbox &amp;&amp; shellType === &#x27;powershell&#x27;
+  const sandboxBinShell = isSandboxedPowerShell ? &#x27;/bin/sh&#x27; : binShell
+
+  if (shouldUseSandbox) {
+    commandString = await SandboxManager.wrapWithSandbox(
+      commandString,
+      sandboxBinShell,
+      undefined,
+      abortSignal,
+    )
+</code></pre></details></figure>
+<figure class="source-quote"><details class="source"><summary><code>utils/sandbox/sandbox-adapter.ts:704-725</code><span>摘录 16 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/sandbox/sandbox-adapter.ts#L704-L725">核对原文</a></summary><pre><code class="language-ts" data-block-id="13-paths-and-sandbox.md#012" data-quote-type="C" data-source-range="utils/sandbox/sandbox-adapter.ts:704-725">// … 省略 6 行（utils/sandbox/sandbox-adapter.ts:L704-L709）
+  // If sandboxing is enabled, ensure initialization is complete
+  if (isSandboxingEnabled()) {
+    if (initializationPromise) {
+      await initializationPromise
+    } else {
+      throw new Error(&#x27;Sandbox failed to initialize. &#x27;)
+    }
+  }
+
+  return BaseSandboxManager.wrapWithSandbox(
+    command,
+    binShell,
+    customConfig,
+    abortSignal,
+  )
+}
+</code></pre></details></figure>
+<p>原文依据：<code>utils/sandbox/sandbox-adapter.ts:704-725</code>。</p>
+<h2 id="section-6">共享记忆还有写入与上传检查</h2>
+<p>团队路径验证先规范 .. 并检查字符串范围，再解析最深已有祖先的符号链接，确认实际目标仍在真实 team 目录。秘密 guard 在 TEAMMEM 下检查拟写内容，上传枚举又扫描并跳过命中文件。完整证据在 <code>memdir/teamMemPaths.ts:222-256</code>、<code>services/teamMemorySync/teamMemSecretGuard.ts:3-44</code>、<code>services/teamMemorySync/index.ts:562-617</code>，持久化用途与同步流程由第 16 章详述。这里保留另一处敏感写入跨过本地与共享边界的例子。</p>
+<p>危险动作的可逆性、影响范围与用户授权文字，以及外来结果提示注入提醒，已由第 4 章配对说明（<code>constants/prompts.ts:255-267</code>、<code>constants/prompts.ts:127-129</code>、<code>constants/prompts.ts:186-197</code>、<code>constants/cyberRiskInstruction.ts:24-24</code>）。文字要求模型判断授权来源，实际代码检查具体参数、路径和运行环境。二者接在一起才构成当前控制面；其中任何一层都不能替其他层提供未审过的保证。</p>
+<p>权限卷到此从一次输入走到执行环境。下一卷换一个限制对象：已经进入对话的消息、工具结果和记忆会占空间。第 14 章先分清窗口、字符估算和工作目标，随后再解释哪些内容会被回收。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="12-hooks-and-confirmation.html"><span class="page-direction">&larr; 上一章</span><span>第 12 章 · hooks、确认与拒绝后的继续</span></a>
+<a href="14-budgets.html"><span class="page-direction">&rarr; 下一章</span><span>第 14 章 · 窗口、字符与 token：几种预算各算什么</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 2 章 · 分段缓存与会话生命周期 | Claude Code 控制面</title>
+<link rel="stylesheet" href="reader.css">
+</head>
+<body>
+<a class="skip-link" href="#main">跳到正文</a>
+<aside class="sidebar">
+  <a class="book-name" href="index.html">Claude Code<span>控制面</span></a>
+  <nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html" aria-current="page"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+<ol class="section-list">
+<li><a href="#section-1">一个名称绑定一次计算</a></li>
+<li><a href="#section-2">逐轮变化的材料需要另一条路径</a></li>
+<li><a href="#section-3">文本边界进入 API 后才成为 scope</a></li>
+<li><a href="#section-4">清缓存也有不同范围</a></li>
+<li><a href="#section-5">失效应对准实际消费者</a></li>
+<li><a href="#section-6">文案可以把条件移到句子里</a></li>
+</ol>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav>
+</aside>
+<header class="mobile-header">
+  <a class="mobile-book-name" href="index.html">Claude Code 控制面</a>
+  <details class="mobile-contents"><summary>目录</summary><nav aria-label="全书目录">
+<h2 class="toc-group">A · 系统提示词装配</h2><ol class="chapter-list">
+<li><a href="01-prompt-assembly.html"><span class="chapter-number">01</span><span>模型收到的提示词从哪里来</span></a>
+</li>
+<li><a href="02-prompt-cache.html" aria-current="page"><span class="chapter-number">02</span><span>分段缓存与会话生命周期</span></a>
+<ol class="section-list">
+<li><a href="#section-1">一个名称绑定一次计算</a></li>
+<li><a href="#section-2">逐轮变化的材料需要另一条路径</a></li>
+<li><a href="#section-3">文本边界进入 API 后才成为 scope</a></li>
+<li><a href="#section-4">清缓存也有不同范围</a></li>
+<li><a href="#section-5">失效应对准实际消费者</a></li>
+<li><a href="#section-6">文案可以把条件移到句子里</a></li>
+</ol>
+</li>
+<li><a href="03-instruction-files.html"><span class="chapter-number">03</span><span>CLAUDE.md 的发现、导入与按路径加载</span></a>
+</li>
+</ol>
+<h2 class="toc-group">B · 行为引导模式</h2><ol class="chapter-list">
+<li><a href="04-prohibitions-and-authorization.html"><span class="chapter-number">04</span><span>禁止、替代动作与授权豁免</span></a>
+</li>
+<li><a href="05-completion.html"><span class="chapter-number">05</span><span>做到什么程度，何时算做完</span></a>
+</li>
+<li><a href="06-output-and-subtasks.html"><span class="chapter-number">06</span><span>给用户看的文字与子任务专用提示</span></a>
+</li>
+</ol>
+<h2 class="toc-group">C · 工具提示词</h2><ol class="chapter-list">
+<li><a href="07-tool-contracts.html"><span class="chapter-number">07</span><span>工具接口、描述与发现协议</span></a>
+</li>
+<li><a href="08-file-shell.html"><span class="chapter-number">08</span><span>文件与 shell 工具怎样约束调用</span></a>
+</li>
+<li><a href="09-agent-workflows.html"><span class="chapter-number">09</span><span>委派、计划与任务协作的调用流程</span></a>
+</li>
+</ol>
+<h2 class="toc-group">D · 权限与安全边界</h2><ol class="chapter-list">
+<li><a href="10-permission-pipeline.html"><span class="chapter-number">10</span><span>一次工具调用怎样得到 allow、deny 或 ask</span></a>
+</li>
+<li><a href="11-permission-modes.html"><span class="chapter-number">11</span><span>权限模式与分类器的边界</span></a>
+</li>
+<li><a href="12-hooks-and-confirmation.html"><span class="chapter-number">12</span><span>hooks、确认与拒绝后的继续</span></a>
+</li>
+<li><a href="13-paths-and-sandbox.html"><span class="chapter-number">13</span><span>路径保护与沙箱执行</span></a>
+</li>
+</ol>
+<h2 class="toc-group">E · 上下文与记忆预算</h2><ol class="chapter-list">
+<li><a href="14-budgets.html"><span class="chapter-number">14</span><span>窗口、字符与 token：几种预算各算什么</span></a>
+</li>
+<li><a href="15-compaction.html"><span class="chapter-number">15</span><span>压缩怎样删内容，又怎样让工作接着走</span></a>
+</li>
+<li><a href="16-memory.html"><span class="chapter-number">16</span><span>从当前会话笔记到跨会话记忆</span></a>
+</li>
+</ol></nav></details>
+</header>
+<main class="reader-main" id="main">
+<article class="chapter">
+  <header class="chapter-header">
+    <p class="chapter-category">A · 系统提示词装配<span>第 02 章</span></p>
+    <h1>分段缓存与会话生命周期</h1>
+  </header>
+  <div class="chapter-body"><p>上一章追到了请求入口，这章回头看哪些输入会复用。核心源码是 <code>constants/systemPromptSections.ts:8-38</code>、<code>constants/systemPromptSections.ts:40-68</code>、<code>bootstrap/state.ts:1641-1654</code> 和 API 分块函数。这里值得分清两层：本地缓存避免重新计算提示词段，API cache_control 声明哪些请求文本可以缓存。前一层返回旧字符串，后一层为已经得到的字符串加请求字段；二者的失效条件并不相同。</p>
+<h2 id="section-1">一个名称绑定一次计算</h2>
+<p>systemPromptSection 返回 name、compute 和 cacheBreak:false，注释说结果保留到 clear 或 compact。另一个工厂设置 cacheBreak:true，并要求传 reason 参数。reason 没有在工厂中参与判断，它是调用者对逐轮重算的说明；看到参数名便断言缓存器会自动评估变动风险，会读过头（A-06）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/systemPromptSections.ts:8-38</code><span>摘录 15 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/systemPromptSections.ts#L8-L38">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#001" data-quote-type="C" data-source-range="constants/systemPromptSections.ts:8-38">// … 省略 10 行（constants/systemPromptSections.ts:L8-L17）
+ * Computed once, cached until /clear or /compact.
+ */
+export function systemPromptSection(
+  name: string,
+  compute: ComputeFn,
+): SystemPromptSection {
+  return { name, compute, cacheBreak: false }
+}
+// … 省略 6 行（constants/systemPromptSections.ts:L26-L31）
+export function DANGEROUS_uncachedSystemPromptSection(
+  name: string,
+  compute: ComputeFn,
+  _reason: string,
+): SystemPromptSection {
+  return { name, compute, cacheBreak: true }
+}
+</code></pre></details></figure>
+<p>原文依据：<code>constants/systemPromptSections.ts:8-38</code>。</p>
+<p>resolveSystemPromptSections 用 Promise.all 保留数组位置；普通段按 name 查缓存，命中直接返回，未命中才计算并写入。缓存也可以存 null。于是，“这次没有段落”同样是一种可以复用的计算结果。如果决定段存在与否的状态改变，却没有失效或选择逐轮重算，单纯再调用装配函数并不能越过名称缓存（A-07）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/systemPromptSections.ts:40-68</code><span>摘录 8 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/systemPromptSections.ts#L40-L68">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#002" data-quote-type="C" data-source-range="constants/systemPromptSections.ts:40-68">// … 省略 8 行（constants/systemPromptSections.ts:L40-L47）
+  return Promise.all(
+    sections.map(async s =&gt; {
+      if (!s.cacheBreak &amp;&amp; cache.has(s.name)) {
+        return cache.get(s.name) ?? null
+      }
+      const value = await s.compute()
+      setSystemPromptSectionCacheEntry(s.name, value)
+      return value
+// … 省略 13 行（constants/systemPromptSections.ts:L56-L68）
+</code></pre></details></figure>
+<p>原文依据：<code>constants/systemPromptSections.ts:40-68</code>。</p>
+<p>这个缓存键值得特别记住。它不是当前工具集合、模型名、目录等参数的序列化组合，而是工厂的 name。参数已经被闭包捕获，缓存器只看名称和 cacheBreak。理解这点才能追问：调用方何时保证闭包相关状态稳定，何时清旧结果？这两个答案在段注册处和会话清理处，不在 Promise.all 本身。</p>
+<h2 id="section-2">逐轮变化的材料需要另一条路径</h2>
+<p>动态数组给 session_guidance、memory、环境、语言和输出风格等段命名。MCP instructions 使用逐轮重算工厂，理由是服务器会跨轮连接或断开。delta 开启时段返回 null，注释说明改用持久化附件。门控判断放在 compute 里面，旁注释明确指出会话内 gate 改变时要避免读取过期缓存（A-03）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:491-526</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L491-L526">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#003" data-quote-type="C" data-source-range="constants/prompts.ts:491-526">// … 省略 20 行（constants/prompts.ts:L491-L510）
+    // Gate check inside compute (not selecting between section variants)
+    // so a mid-session gate flip doesn&#x27;t read a stale cached value.
+    DANGEROUS_uncachedSystemPromptSection(
+      &#x27;mcp_instructions&#x27;,
+      () =&gt;
+        isMcpInstructionsDeltaEnabled()
+          ? null
+          : getMcpInstructionsSection(mcpClients),
+      &#x27;MCP servers connect/disconnect between turns&#x27;,
+// … 省略 7 行（constants/prompts.ts:L520-L526）
+</code></pre></details></figure>
+<p>“动态段”在这里指用户或会话相关的内容，并不等于每轮都计算。数组里大多数动态段仍使用普通缓存工厂。反过来，逐轮计算也不保证每轮文本不同。审查时要分别记录来源是否依赖会话、计算是否复用、输出是否变化，再看最后一个变化是否影响请求缓存。用一个“动态”形容词把三者合并，容易错过实际条件。</p>
+<p>会话指导的注释给出具体放置理由：工具、交互和实验条件如果出现在静态前缀中，会增加跨组织缓存前缀变体；outputStyleConfig 的身份措辞暂留在静态开场，等待评测。这里是注释记录的设计判断，代码并没有自动把任何会话变量搬到边界后面（<code>constants/prompts.ts:343-400</code>）。前缀稳定性仍取决于作者怎样划分段落。</p>
+<h2 id="section-3">文本边界进入 API 后才成为 scope</h2>
+<p>全局缓存路径在系统数组中寻找 SYSTEM_PROMPT_DYNAMIC_BOUNDARY。遍历时剥掉标记，归属头和 CLI 前缀单独处理；边界前剩余文本合并成 global 块，边界后合并成 null scope 块。这个标记不发给模型。它首先是一条本地数组分界，之后才决定 API 块的缓存范围（A-16）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/api.ts:362-410</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/api.ts#L362-L410">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#004" data-quote-type="C" data-source-range="utils/api.ts:362-410">// … 省略 30 行（utils/api.ts:L362-L391）
+      const staticJoined = staticBlocks.join(&#x27;\n\n&#x27;)
+      if (staticJoined)
+        result.push({ text: staticJoined, cacheScope: &#x27;global&#x27; })
+      const dynamicJoined = dynamicBlocks.join(&#x27;\n\n&#x27;)
+      if (dynamicJoined) result.push({ text: dynamicJoined, cacheScope: null })
+// … 省略 14 行（utils/api.ts:L397-L410）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/api.ts:362-410</code>。</p>
+<p>注意 null scope 的含义：构造函数不会为这块加 cache_control，但代码仍把其 text 放进请求。它没有说“不发动态内容”，也没有说动态内容不能受其他请求缓存布局影响。此处可核验的是当前客户端添加了哪些字段，不能从缓存范围反推消息的指令优先级。global、org 和 null 是请求组装概念，不是 system、user 的替代角色。</p>
+<p>当 skipGlobalCacheForSystemPrompt 为真，全局特性下另走工具缓存优先路径：移除边界后把前缀和其余正文设为 org scope。没有找到边界或未使用全局路径时，也有默认 org 分块。最终 buildSystemPromptBlocks 仅在缓存启用且 scope 非 null 时加 cache_control。开关决定是否加字段，scope 决定字段内容，两次判断都得经过（A-17）。</p>
+<p>（原文见 utils/api.ts:321-360，共 40 行，略）</p>
+<p>原文依据：<code>utils/api.ts:321-360</code>。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/api.ts:411-435</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/api.ts#L411-L435">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#006" data-quote-type="C" data-source-range="utils/api.ts:411-435">// … 省略 17 行（utils/api.ts:L411-L427）
+  if (attributionHeader)
+    result.push({ text: attributionHeader, cacheScope: null })
+  if (systemPromptPrefix)
+    result.push({ text: systemPromptPrefix, cacheScope: &#x27;org&#x27; })
+  const restJoined = rest.join(&#x27;\n\n&#x27;)
+  if (restJoined) result.push({ text: restJoined, cacheScope: &#x27;org&#x27; })
+  return result
+// … 省略 1 行（utils/api.ts:L435-L435）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/api.ts:411-435</code>。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/api/claude.ts:3213-3237</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/api/claude.ts#L3213-L3237">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#007" data-quote-type="C" data-source-range="services/api/claude.ts:3213-3237">// … 省略 15 行（services/api/claude.ts:L3213-L3227）
+      ...(enablePromptCaching &amp;&amp;
+        block.cacheScope !== null &amp;&amp; {
+          cache_control: getCacheControl({
+            scope: block.cacheScope,
+            querySource: options?.querySource,
+          }),
+        }),
+// … 省略 3 行（services/api/claude.ts:L3235-L3237）
+</code></pre></details></figure>
+<p>原文依据：<code>services/api/claude.ts:3213-3237</code>。</p>
+<p>因此，仅在 prompts 文件里找到分界常量不够；还要核对 shouldUseGlobalCacheScope、工具缓存标记需求、边界是否实际入数组、API 是否启用缓存。上一章讲的是数组选择，这一层讲的是数组怎样合并成请求块。两次组装同时存在，但不会互相替对方完成检查。</p>
+<h2 id="section-4">清缓存也有不同范围</h2>
+<p>compact 后清理用 querySource 判定是否主线程。只有主线程清 getUserContext 的 memoize，并设置记忆文件下一次加载原因 compact；段缓存清理在条件之外，总会执行。注释解释一个实际失效问题：只清内部 getMemoryFiles 不够，外层 getUserContext 仍可能挡住重新计算。两层缓存需要在同一事件里对应清理（A-08）。</p>
+<figure class="source-quote"><details class="source"><summary><code>services/compact/postCompactCleanup.ts:12-64</code><span>摘录 12 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/services/compact/postCompactCleanup.ts#L12-L64">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#008" data-quote-type="C" data-source-range="services/compact/postCompactCleanup.ts:12-64">// … 省略 39 行（services/compact/postCompactCleanup.ts:L12-L50）
+  if (isMainThreadCompact) {
+    // getUserContext is a memoized outer layer wrapping getClaudeMds() →
+    // getMemoryFiles(). If only the inner getMemoryFiles cache is cleared,
+    // the next turn hits the getUserContext cache and never reaches
+    // getMemoryFiles(), so the armed InstructionsLoaded hook never fires.
+    // Manual /compact already clears this explicitly at its call sites;
+    // auto-compact and reactive-compact did not — this centralizes the
+    // clear so all compaction paths behave consistently.
+    getUserContext.cache.clear?.()
+    resetGetMemoryFilesCache(&#x27;compact&#x27;)
+  }
+  clearSystemPromptSections()
+// … 省略 2 行（services/compact/postCompactCleanup.ts:L63-L64）
+</code></pre></details></figure>
+<p>原文依据：<code>services/compact/postCompactCleanup.ts:12-64</code>。</p>
+<p>这里的“不够”有明确路径支撑，而非笼统宣称缓存容易脏。读文件的函数返回了新结果，不代表用户上下文会重新调用它；外层缓存已经保留最终字符串。清理代码把内外层的关系写出来，也按主线程区分谁负责用户上下文。子任务运行压缩时若不读这个条件，就可能误以为它会顺手刷新主会话所有材料。</p>
+<p>clear 更广：清用户上下文、系统上下文、Git 状态和会话起始日期，清 cache breaker，再调用 compact 清理，最后把记忆重载原因从 compact 改回 session_start。借用共同清理函数后又改原因，是因为“上下文重新开始”与“压缩后重新开始”的事件语义不同（A-09）。</p>
+<figure class="source-quote"><details class="source"><summary><code>commands/clear/caches.ts:47-84</code><span>摘录 5 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/commands/clear/caches.ts#L47-L84">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#009" data-quote-type="C" data-source-range="commands/clear/caches.ts:47-84">// … 省略 33 行（commands/clear/caches.ts:L47-L79）
+  // Override the memory cache reset with &#x27;session_start&#x27;: clearSessionCaches is called
+  // from /clear and --resume/--continue, which are NOT compaction events. Without this,
+  // the InstructionsLoaded hook would fire with load_reason &#x27;compact&#x27; instead of
+  // &#x27;session_start&#x27; on the next getMemoryFiles() call.
+  resetGetMemoryFilesCache(&#x27;session_start&#x27;)
+</code></pre></details></figure>
+<p>原文依据：<code>commands/clear/caches.ts:47-84</code>。</p>
+<p>（原文见 commands/clear/conversation.ts:124-130，共 7 行，略）</p>
+<p>原文依据：<code>commands/clear/conversation.ts:124-130</code>。</p>
+<p>记忆模块也给出两个接口。clearMemoryFileCaches 只清文件计算缓存；resetGetMemoryFilesCache 还设置加载原因并重新允许 InstructionsLoaded hook。旁注释明确让纯正确性失效用前者、真正重新装入上下文时用后者。后续发现文件变更时，不宜只因为名字带 reset 就调用更广的接口（A-37）。</p>
+<figure class="source-quote"><details class="source"><summary><code>utils/claudemd.ts:1042-1086</code><span>摘录 7 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/utils/claudemd.ts#L1042-L1086">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#011" data-quote-type="C" data-source-range="utils/claudemd.ts:1042-1086">// … 省略 12 行（utils/claudemd.ts:L1042-L1053）
+    if (!forceIncludeExternal) {
+      const eagerLoadReason = consumeNextEagerLoadReason()
+      if (eagerLoadReason !== undefined &amp;&amp; hasInstructionsLoadedHook()) {
+        for (const file of result) {
+          if (!isInstructionsMemoryType(file.type)) continue
+          const loadReason = file.parent ? &#x27;include&#x27; : eagerLoadReason
+          void executeInstructionsLoadedHooks(
+// … 省略 26 行（utils/claudemd.ts:L1061-L1086）
+</code></pre></details></figure>
+<p>原文依据：<code>utils/claudemd.ts:1042-1086</code>。</p>
+<h2 id="section-5">失效应对准实际消费者</h2>
+<p>注入接口改值后清 userContext 与 systemContext，说明注入消费者在两个 memoize 结果里。Git 状态则有自己的缓存，clearSessionCaches 另行清它。每一个清理调用对应一个被复用的结果；不能用“这个事件会重装提示词”替代逐个检查消费者。这也是为什么 compact 清理里的注释特意说到外层缓存挡住内层重新加载（<code>context.ts:20-34</code>、<code>context.ts:84-103</code>、<code>context.ts:113-150</code>、<code>services/compact/postCompactCleanup.ts:12-64</code>）。</p>
+<p>InstructionsLoaded hook 还会区分重载原因。记忆模块把已加载标志与 nextLoadReason 一起维护：清文件缓存但不准备重新触发 hook，和把指令重新放进上下文后发出加载事件，是两条接口。调用者若仅仅让未来读取更准确，不应顺手告诉 hook“整个会话又开始一次”。源码已在注释里列出 correctness invalidation 与 compact 的区别（<code>utils/claudemd.ts:1042-1086</code>、<code>utils/claudemd.ts:1088-1130</code>）。</p>
+<p>段缓存清理还会清 beta 头的锁存状态。这个动作和 systemPromptSections 的文本缓存同在 clearSystemPromptSections 内，因此清段不能只理解为删字符串。API 请求配置里另有会话稳定的选择；这层配套清理让我们知道作者把两者视为同一个重装事件需要处理的状态（A-07）。</p>
+<figure class="source-quote"><details class="source"><summary><code>bootstrap/state.ts:1641-1654</code><span>摘录 10 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/bootstrap/state.ts#L1641-L1654">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#012" data-quote-type="C" data-source-range="bootstrap/state.ts:1641-1654">// … 省略 4 行（bootstrap/state.ts:L1641-L1644）
+export function setSystemPromptSectionCacheEntry(
+  name: string,
+  value: string | null,
+): void {
+  STATE.systemPromptSectionCache.set(name, value)
+}
+
+export function clearSystemPromptSectionState(): void {
+  STATE.systemPromptSectionCache.clear()
+}
+</code></pre></details></figure>
+<p>原文依据：<code>bootstrap/state.ts:1641-1654</code>。</p>
+<p>如果只是 MCP 连接变化，当前注册方式没有调用全量 clear，而是给该段逐轮计算或改成 delta 附件。若是 clear/compact，则有统一失效动作。这两种路径处理不同粒度的变动：一个让特定材料进入下一请求，一个让一组会话快照重新取得。代码没有提供“任何设置变化都清所有缓存”的通用承诺，寻找失效接口时要带上事件来源。</p>
+<p>工具 schema 的键包含 JSON schema 内容，是另一种解决变化的办法。注释记录曾只按名称缓存 StructuredOutput，导致不同流程共名时返回旧 schema；现在把 inputJSONSchema 放进键。系统段以名称缓存并依赖清理事件，工具 schema 以不同键区分内容变化，二者不能互相类推（<code>utils/api.ts:136-178</code>、<code>utils/api.ts:208-230</code>、<code>tools/BashTool/BashTool.tsx:426-433</code>）。</p>
+<h2 id="section-6">文案可以把条件移到句子里</h2>
+<p>token 目标段受 TOKEN_BUDGET 构建特性门控，但注册后无条件缓存。注释说旧的“按当前是否有预算选择段”会在预算切换时破坏约两万 token 的缓存前缀；现在句子以 When the user specifies 起头，使没有预算时不要求动作。这里从“是否放这段”改成“读这段后何时行动”，是两种不同的条件承载位置（B-24）。</p>
+<figure class="source-quote"><details class="source"><summary><code>constants/prompts.ts:538-551</code><span>摘录 9 行</span><a href="https://github.com/Usamaliaquat123/Claude-Code-Source/blob/9955b25de0ca3ad6ff97757045006143de73db73/constants/prompts.ts#L538-L551">核对原文</a></summary><pre><code class="language-ts" data-block-id="02-prompt-cache.md#013" data-quote-type="P" data-source-range="constants/prompts.ts:538-551">// … 省略 2 行（constants/prompts.ts:L538-L539）
+          // Cached unconditionally — the &quot;When the user specifies...&quot; phrasing
+          // makes it a no-op with no budget active. Was DANGEROUS_uncached
+          // (toggled on getCurrentTurnTokenBudget()), busting ~20K tokens per
+          // budget flip. Not moved to a tail attachment: first-response and
+          // budget-continuation paths don&#x27;t see attachments (#21577).
+          systemPromptSection(
+            &#x27;token_budget&#x27;,
+            () =&gt;
+              &#x27;When the user specifies a token target (e.g., &quot;+500k&quot;, &quot;spend 2M tokens&quot;, &quot;use 1B tokens&quot;), your output token count will be shown each turn. Keep working until you approach the target \u2014 plan your work to fill it productively. The target is a hard minimum, not a suggestion. If you stop early, the system will automatically continue you.&#x27;,
+// … 省略 3 行（constants/prompts.ts:L549-L551）
+</code></pre></details></figure>
+<p>数字长度段则只给 内部用户。注释记录相对定性 be concise 约 1.2% 的输出 token 下降，并说明先测质量；代码能确认谁注册这段、它要求工具间和最终输出多少词。这些词数属于行为要求，既不决定 system 数组的行数，也不改变缓存器的名称键。具体措辞留到<a href="06-output-and-subtasks.html">第 6 章</a>（<code>constants/prompts.ts:527-537</code>）。</p>
+<p>工具 schema 还有自己的会话缓存。API 转换器缓存 name、description、input_schema 等基础字段，再为单次请求叠加 defer_loading 与 cache_control；带 inputJSONSchema 的工具还把 schema 内容放入键。它不会因为缓存了系统段就省掉工具描述转换，两个对象各有自己的稳定性问题（<code>utils/api.ts:136-178</code>、<code>utils/api.ts:208-230</code>、<code>tools/BashTool/BashTool.tsx:426-433</code>），工具接口详见<a href="07-tool-contracts.html">第 7 章</a>。</p>
+<p>这章最后需要留下的检查动作，是从缓存键一路追到清理事件。名称相同、字符串没变、请求标记可缓存，各指不同事实。知道这些层次，才能解释为什么“又装了一次提示词”仍可能复用旧材料；接下来读指令文件时，也要区分文件被发现、内容被处理、文字被装入三件事。</p></div>
+  <nav class="page-navigation" aria-label="章节翻页">
+<a href="01-prompt-assembly.html"><span class="page-direction">&larr; 上一章</span><span>第 1 章 · 模型收到的提示词从哪里来</span></a>
+<a href="03-instruction-files.html"><span class="page-direction">&rarr; 下一章</span><span>第 3 章 · CLAUDE.md 的发现、导入与按路径加载</span></a>
+</nav>
+</article>
+</main>
+</body>
+</html>
