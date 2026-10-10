@@ -1,6 +1,6 @@
-# Claude Code 控制面
+# Claude Code 源码思想解读
 
-本书沿源码讨论 Claude Code 的控制面：系统提示词怎样装配，工具描述怎样约束调用，权限怎样判定，上下文怎样压缩与记忆。全书 16 章，面向熟悉软件工程的读者。
+本书从 Claude Code 源码解释系统提示词怎样装配，工具描述怎样约束调用，权限怎样判定，上下文怎样压缩与记忆。全书 16 章，面向熟悉软件工程的读者。
 
 在线阅读：[monadrome.github.io/cc-sourcebook](https://monadrome.github.io/cc-sourcebook/)。离线阅读：下载公开版后打开 `index.html`，无需联网。
 
